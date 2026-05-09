@@ -13,11 +13,11 @@
       "type": "http",
       "documentation": "",
       "method": "get",
-      "endpoint": "tasks",
+      "endpoint": "taskss",
       "responses": [
         {
           "uuid": "e1599e50-9dcc-4007-9c69-6b94ad1422a1",
-          "body": "{\n  \"patient_tasks\": [\n    {\n      \"id\": \"1\",\n      \"version\": 1,\n      \"title\": \"Patient Test 1\",\n      \"status\": \"requested\",\n      \"priority\": \"routine\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/1\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"2026-05-09T12:18:00Z\"\n    },\n    {\n      \"id\": \"2\",\n      \"version\": 1,\n      \"title\": \"Patient Test 2\",\n      \"status\": \"requested\",\n      \"priority\": \"routine\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/2\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"2026-05-09T13:18:00Z\"\n    }\n  ]\n}",
+          "body": "{\n  \"patient_tasks\": [\n    {\n      \"id\": \"1\",\n      \"version\": 1,\n      \"title\": \"Patient Test 1\",\n      \"status\": \"requested\",\n      \"priority\": \"routine\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/1\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"{{dateTimeShift}}\"\n    },\n    {\n      \"id\": \"2\",\n      \"version\": 1,\n      \"title\": \"Patient Test 2\",\n      \"status\": \"requested\",\n      \"priority\": \"routine\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/2\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"{{dateTimeShift}}\"\n    }\n  ]\n}",
           "latency": 0,
           "statusCode": 200,
           "label": "",
@@ -36,12 +36,105 @@
         }
       ],
       "responseMode": null
+    },
+    {
+      "uuid": "af241bb2-515a-42cd-b6d1-96d636017fce",
+      "type": "http",
+      "documentation": "",
+      "method": "patch",
+      "endpoint": "taskss/:id",
+      "responses": [
+        {
+          "uuid": "464e03c7-ca6f-4f85-93a2-8fdf066f6131",
+          "body": "{\n  \"id\": \"{{urlParam 'id'}}\",\n  \"version\": 2,\n  \"title\": \"{{body 'title'}}\",\n  \"status\": \"{{body 'status' 'requested'}}\",\n  \"priority\": \"{{body 'priority' 'routine'}}\",\n  \"due_date\": \"{{body 'due_date'}}\",\n  \"reference\": \"Patient Test/{{urlParam 'id'}}\",\n  \"assignee\": \"{{body 'assignee' 'Practitioner/X'}}\",\n  \"last_update\": \"{{dateTimeShift}}\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null
+    },
+    {
+      "uuid": "54ed1831-94fe-4851-b2d4-c7c383f96d7c",
+      "type": "crud",
+      "documentation": "",
+      "method": "",
+      "endpoint": "tasks",
+      "responses": [
+        {
+          "uuid": "04dd0760-9c8c-47e6-9316-1f3be4bdc398",
+          "body": "{}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "DATABUCKET",
+          "filePath": "",
+          "databucketID": "77bk",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        },
+        {
+          "uuid": "31ce5d0e-d7ff-4d47-b8d9-ac0b2c014065",
+          "body": "{\n  \"patient_tasks\": [\n    {\n      \"id\": \"1\",\n      \"version\": 1,\n      \"title\": \"Patient Test 1\",\n      \"status\": \"requested\",\n      \"priority\": \"routine\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/1\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"{{dateTimeShift}}\"\n    },\n    {\n      \"id\": \"2\",\n      \"version\": 1,\n      \"title\": \"Patient Test 2\",\n      \"status\": \"completed\",\n      \"priority\": \"routine\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/2\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"{{dateTimeShift}}\"\n    }\n  ]\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "params",
+              "modifier": "id",
+              "value": "2",
+              "invert": false,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null
     }
   ],
   "rootChildren": [
     {
       "type": "route",
       "uuid": "9f064398-71df-41f3-aada-628b6106ad1d"
+    },
+    {
+      "type": "route",
+      "uuid": "af241bb2-515a-42cd-b6d1-96d636017fce"
+    },
+    {
+      "type": "route",
+      "uuid": "54ed1831-94fe-4851-b2d4-c7c383f96d7c"
     }
   ],
   "proxyMode": false,
@@ -75,6 +168,14 @@
       "value": ""
     }
   ],
-  "data": [],
+  "data": [
+    {
+      "uuid": "a2192937-7839-4497-9955-1d22cd26a6f2",
+      "id": "77bk",
+      "name": "Patient Tasks",
+      "documentation": "",
+      "value": "{\n  \"patient_tasks\": [\n    {\n      \"id\": \"1\",\n      \"version\": 1,\n      \"title\": \"Patient Test 1\",\n      \"status\": \"requested\",\n      \"priority\": \"routine\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/1\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"{{dateTimeShift}}\"\n    },\n    {\n      \"id\": \"2\",\n      \"version\": 1,\n      \"title\": \"Patient Test 2\",\n      \"status\": \"requested\",\n      \"priority\": \"routine\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/2\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"{{dateTimeShift}}\"\n    }\n  ]\n}"
+    }
+  ],
   "callbacks": []
 }

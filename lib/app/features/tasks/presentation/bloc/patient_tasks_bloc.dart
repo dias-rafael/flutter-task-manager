@@ -8,6 +8,7 @@ part 'patient_tasks_state.dart';
 class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
   PatientTasksBloc({required this.repository}) : super(PatientTasksInitial()) {
     on<FetchPatientTasks>(_onFetchTasks);
+    on<UpdatePatientTaskStatus>(_onUpdateStatus);
   }
 
   final PatientTasksRepository repository;
@@ -19,6 +20,23 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
     emit(PatientTasksLoading());
 
     try {
+      final tasks = await repository.fetchTasks();
+
+      emit(PatientTasksLoaded(tasks));
+    } catch (e) {
+      emit(PatientTasksError(e.toString()));
+    }
+  }
+
+  Future<void> _onUpdateStatus(
+    UpdatePatientTaskStatus event,
+    Emitter<PatientTasksState> emit,
+  ) async {
+    emit(PatientTasksLoading());
+
+    try {
+      await repository.patchStatus(taskId: event.taskId, status: event.status);
+
       final tasks = await repository.fetchTasks();
 
       emit(PatientTasksLoaded(tasks));

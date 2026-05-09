@@ -35,24 +35,27 @@ class PatientTasksView extends StatelessWidget {
           }
 
           if (state is PatientTasksLoaded) {
-            final tasks = state.tasks;
+            return ListView.builder(
+              itemCount: state.tasks.length,
+              itemBuilder: (context, index) {
+                final task = state.tasks[index];
 
-            return RefreshIndicator(
-              onRefresh: () async {
-                context.read<PatientTasksBloc>().add(FetchPatientTasks());
+                return ListTile(
+                  title: Text(task.title),
+                  subtitle: Text(task.status.name),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.check),
+                    onPressed: () {
+                      context.read<PatientTasksBloc>().add(
+                        UpdatePatientTaskStatus(
+                          taskId: task.id,
+                          status: TaskStatus.completed,
+                        ),
+                      );
+                    },
+                  ),
+                );
               },
-              child: ListView.builder(
-                itemCount: tasks.length,
-                itemBuilder: (context, index) {
-                  final task = tasks[index];
-
-                  return CheckboxListTile(
-                    title: Text(task.title),
-                    value: task.status == TaskStatus.completed,
-                    onChanged: (value) {},
-                  );
-                },
-              ),
             );
           }
 

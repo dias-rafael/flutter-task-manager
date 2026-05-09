@@ -19,7 +19,6 @@ class PatientTasks with EquatableMixin {
   final String title;
   final TaskStatus status;
   final TaskPriority priority;
-
   final DateTime? dueDate;
   final String patientReference;
   final String? assignee;

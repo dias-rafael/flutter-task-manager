@@ -17,4 +17,19 @@ class PatientTasksRepositoryImpl implements PatientTasksRepository {
       rethrow;
     }
   }
+
+  @override
+  Future<void> patchStatus({
+    required String taskId,
+    required TaskStatus status,
+  }) async {
+    try {
+      await remote.patchStatus(
+        taskId: taskId,
+        status: status.toString().split('.').last,
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

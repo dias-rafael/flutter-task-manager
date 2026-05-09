@@ -13,14 +13,18 @@ class PatientTasksRemoteDataSourceImpl implements PatientTasksRemoteDataSource {
   Future<List<PatientTasksModel>> fetchTasks() async {
     final response = await _client.get<Map<String, dynamic>>(tasksEndPoint);
 
-    final result = response.data != null
-        ? List<PatientTasksModel>.from(
-            (response.data!['patient_tasks'] as List).map(
-              (e) => PatientTasksModel.fromJson(e as Map<String, dynamic>),
-            ),
-          )
-        : throw Exception('Failed to load tasks');
+    final data = response.data!['patient_tasks'] as List<dynamic>;
 
-    return result;
+    return data
+        .map((json) => PatientTasksModel.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
+  Future<void> patchStatus({
+    required String taskId,
+    required String status,
+  }) async {
+    await _client.patch<dynamic>('/tasks/$taskId', data: {'status': status});
   }
 }
