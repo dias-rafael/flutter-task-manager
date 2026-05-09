@@ -1,12 +1,8 @@
 import 'package:get_it/get_it.dart';
 
-abstract class DI {
-  T get<T extends Object>();
+import '../dependency_injection.dart';
 
-  Future<void> allReady();
-}
-
-class GetItContainer implements DI {
+class GetItClient implements DI {
   final _getIt = GetIt.instance;
 
   @override
@@ -17,6 +13,3 @@ class GetItContainer implements DI {
 
   GetIt get instance => _getIt;
 }
-
-// Global reference
-final DI injector = GetItContainer();

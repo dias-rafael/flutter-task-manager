@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'core/di/injection.dart';
+import 'core/di/dependency_injection.dart';
 import 'core/di/setup_injection.dart';
 
 void main() async {
