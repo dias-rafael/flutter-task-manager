@@ -1,4 +1,5 @@
 import '../../../../../../core/network/network.dart';
+import '../../../domain/domain.dart';
 import '../../models/patient_tasks_model.dart';
 import 'patient_tasks_remote_data_source.dart';
 
@@ -10,21 +11,33 @@ class PatientTasksRemoteDataSourceImpl implements PatientTasksRemoteDataSource {
   final Network _client;
 
   @override
-  Future<List<PatientTasksModel>> fetchTasks() async {
-    final response = await _client.get<Map<String, dynamic>>(tasksEndPoint);
+  Future<List<PatientTasks>> fetchTasks() async {
+    try {
+      final response = await _client.get<Map<String, dynamic>>(tasksEndPoint);
 
-    final data = response.data!['patient_tasks'] as List<dynamic>;
+      final data = response.data!['patient_tasks'] as List<dynamic>;
 
-    return data
-        .map((json) => PatientTasksModel.fromJson(json as Map<String, dynamic>))
-        .toList();
+      return data
+          .map(
+            (json) => PatientTasksModel.fromJson(
+              json as Map<String, dynamic>,
+            ).toEntity(),
+          )
+          .toList();
+    } catch (e) {
+      rethrow;
+    }
   }
 
   @override
   Future<void> patchStatus({
     required String taskId,
+    required int version,
     required String status,
   }) async {
-    await _client.patch<dynamic>('/tasks/$taskId', data: {'status': status});
+    await _client.patch<void>(
+      '/tasks/$taskId',
+      data: {'version': version, 'status': status},
+    );
   }
 }

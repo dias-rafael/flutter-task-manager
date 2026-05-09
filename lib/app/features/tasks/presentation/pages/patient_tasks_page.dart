@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../core/di/dependency_injection.dart';
-import '../../domain/enums/task_status_enum.dart';
 import '../bloc/patient_tasks_bloc.dart';
+import '../widgets/patient_tasks_card.dart';
 
 class PatientTasksPage extends StatelessWidget {
   const PatientTasksPage({super.key});
@@ -11,7 +11,7 @@ class PatientTasksPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => injector.get<PatientTasksBloc>()..add(FetchPatientTasks()),
+      create: (_) => injector.get<PatientTasksBloc>()..add(LoadTasks()),
       child: const PatientTasksView(),
     );
   }
@@ -26,36 +26,52 @@ class PatientTasksView extends StatelessWidget {
       appBar: AppBar(title: const Text('Patient Tasks')),
       body: BlocBuilder<PatientTasksBloc, PatientTasksState>(
         builder: (context, state) {
+          // ---------------------------------------------------------------
+          // LOADING
+          // ---------------------------------------------------------------
+
           if (state is PatientTasksLoading) {
             return const Center(child: CircularProgressIndicator());
           }
+
+          // ---------------------------------------------------------------
+          // ERROR
+          // ---------------------------------------------------------------
 
           if (state is PatientTasksError) {
             return Center(child: Text(state.message));
           }
 
-          if (state is PatientTasksLoaded) {
-            return ListView.builder(
-              itemCount: state.tasks.length,
-              itemBuilder: (context, index) {
-                final task = state.tasks[index];
+          // ---------------------------------------------------------------
+          // LOADED
+          // ---------------------------------------------------------------
 
-                return ListTile(
-                  title: Text(task.title),
-                  subtitle: Text(task.status.name),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.check),
-                    onPressed: () {
-                      context.read<PatientTasksBloc>().add(
-                        UpdatePatientTaskStatus(
-                          taskId: task.id,
-                          status: TaskStatus.completed,
-                        ),
-                      );
-                    },
-                  ),
-                );
+          if (state is PatientTasksLoaded) {
+            final tasks = state.tasks;
+
+            if (tasks.isEmpty) {
+              return const Center(child: Text('No tasks found'));
+            }
+
+            return RefreshIndicator(
+              onRefresh: () async {
+                context.read<PatientTasksBloc>().add(LoadTasks());
               },
+              child: ListView.separated(
+                padding: const EdgeInsets.all(16),
+
+                itemCount: tasks.length,
+
+                separatorBuilder: (_, __) {
+                  return const SizedBox(height: 12);
+                },
+
+                itemBuilder: (context, index) {
+                  final task = tasks[index];
+
+                  return PatientTasksCard(task: task);
+                },
+              ),
             );
           }
 

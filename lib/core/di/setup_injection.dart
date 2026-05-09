@@ -10,18 +10,27 @@ import 'clients/getit_client.dart';
 import 'dependency_injection.dart';
 
 Future<void> setupDependencies() async {
-  final container = injector as GetItClient;
-  final getIt = container.instance;
+  final getIt = (injector as GetItClient).instance;
 
   // ---------------------------------------------------------------------------
   // Hive
   // ---------------------------------------------------------------------------
   await Hive.initFlutter();
 
-  // ---------------------------------------------------------------------------
-  // Network
-  // ---------------------------------------------------------------------------
+  Hive.registerAdapter(PatientTasksLocalModelAdapter());
+
+  Hive.registerAdapter(SyncOperationLocalModelAdapter());
+
+  final tasksBox = await Hive.openBox<PatientTasksLocalModel>('patient_tasks');
+
+  final queueBox = await Hive.openBox<SyncOperationLocalModel>('sync_queue');
+
   getIt
+    ..registerLazySingleton(() => tasksBox)
+    ..registerLazySingleton(() => queueBox)
+    // ---------------------------------------------------------------------------
+    // Network
+    // ---------------------------------------------------------------------------
     ..registerLazySingleton<Dio>(Dio.new)
     ..registerLazySingleton<Network>(() => DioClient(getIt<Dio>()))
     // ---------------------------------------------------------------------------
@@ -31,7 +40,8 @@ Future<void> setupDependencies() async {
       () => PatientTasksRemoteDataSourceImpl(getIt<Network>()),
     )
     ..registerLazySingleton<PatientTasksLocalDataSource>(
-      PatientTasksLocalDataSourceImpl.new,
+      () =>
+          PatientTasksLocalDataSourceImpl(tasksBox: getIt(), queueBox: getIt()),
     )
     // ---------------------------------------------------------------------------
     // Repositories

@@ -2,10 +2,10 @@ part of 'patient_tasks_bloc.dart';
 
 sealed class PatientTasksEvent {}
 
-class FetchPatientTasks extends PatientTasksEvent {}
+class LoadTasks extends PatientTasksEvent {}
 
-class UpdatePatientTaskStatus extends PatientTasksEvent {
-  UpdatePatientTaskStatus({required this.taskId, required this.status});
+class UpdateTaskStatus extends PatientTasksEvent {
+  UpdateTaskStatus({required this.taskId, required this.status});
 
   final String taskId;
   final TaskStatus status;

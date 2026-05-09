@@ -1,7 +1,11 @@
-import '../../models/patient_tasks_model.dart';
+import '../../../domain/domain.dart';
 
 abstract class PatientTasksRemoteDataSource {
-  Future<List<PatientTasksModel>> fetchTasks();
+  Future<List<PatientTasks>> fetchTasks();
 
-  Future<void> patchStatus({required String taskId, required String status});
+  Future<void> patchStatus({
+    required String taskId,
+    required int version,
+    required String status,
+  });
 }

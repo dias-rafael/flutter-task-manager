@@ -13,7 +13,7 @@
       "type": "http",
       "documentation": "",
       "method": "get",
-      "endpoint": "taskss",
+      "endpoint": "tasks",
       "responses": [
         {
           "uuid": "e1599e50-9dcc-4007-9c69-6b94ad1422a1",
@@ -42,7 +42,7 @@
       "type": "http",
       "documentation": "",
       "method": "patch",
-      "endpoint": "taskss/:id",
+      "endpoint": "tasks/:id",
       "responses": [
         {
           "uuid": "464e03c7-ca6f-4f85-93a2-8fdf066f6131",
@@ -71,7 +71,7 @@
       "type": "crud",
       "documentation": "",
       "method": "",
-      "endpoint": "tasks",
+      "endpoint": "taskscrud",
       "responses": [
         {
           "uuid": "04dd0760-9c8c-47e6-9316-1f3be4bdc398",

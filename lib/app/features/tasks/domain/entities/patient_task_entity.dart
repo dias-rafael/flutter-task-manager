@@ -1,8 +1,7 @@
-import 'package:equatable/equatable.dart';
-
 import '../enums/enums.dart';
+import 'invalid_task_transition_exception.dart';
 
-class PatientTasks with EquatableMixin {
+class PatientTasks {
   const PatientTasks({
     required this.id,
     required this.version,
@@ -24,16 +23,72 @@ class PatientTasks with EquatableMixin {
   final String? assignee;
   final DateTime lastModified;
 
-  @override
-  List<Object?> get props => [
-    id,
-    version,
-    title,
-    status,
-    priority,
-    dueDate,
-    patientReference,
-    assignee,
-    lastModified,
-  ];
+  bool canTransitionTo(TaskStatus next) {
+    switch (status) {
+      case TaskStatus.requested:
+        return [TaskStatus.inProgress, TaskStatus.cancelled].contains(next);
+
+      case TaskStatus.inProgress:
+        return [
+          TaskStatus.onHold,
+          TaskStatus.completed,
+          TaskStatus.cancelled,
+        ].contains(next);
+
+      case TaskStatus.onHold:
+        return [TaskStatus.inProgress, TaskStatus.cancelled].contains(next);
+
+      case TaskStatus.completed:
+      case TaskStatus.cancelled:
+      case TaskStatus.unknown:
+        return false;
+    }
+  }
+
+  PatientTasks transitionTo(TaskStatus next) {
+    if (!canTransitionTo(next)) {
+      throw InvalidTaskTransitionException(current: status, attempted: next);
+    }
+
+    return copyWith(
+      status: next,
+      version: version + 1,
+      lastModified: DateTime.now(),
+    );
+  }
+
+  bool get isOverdue {
+    if (dueDate == null) {
+      return false;
+    }
+
+    return dueDate!.isBefore(DateTime.now()) && status != TaskStatus.completed;
+  }
+
+  bool get isAssigned {
+    return assignee != null;
+  }
+
+  PatientTasks copyWith({
+    int? version,
+    String? title,
+    TaskStatus? status,
+    TaskPriority? priority,
+    String? patientReference,
+    DateTime? lastModified,
+    DateTime? dueDate,
+    String? assignee,
+  }) {
+    return PatientTasks(
+      id: id,
+      version: version ?? this.version,
+      title: title ?? this.title,
+      status: status ?? this.status,
+      priority: priority ?? this.priority,
+      patientReference: patientReference ?? this.patientReference,
+      lastModified: lastModified ?? this.lastModified,
+      dueDate: dueDate ?? this.dueDate,
+      assignee: assignee ?? this.assignee,
+    );
+  }
 }

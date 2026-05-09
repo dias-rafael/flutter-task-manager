@@ -1,10 +1,9 @@
 import '../domain.dart';
 
 abstract class PatientTasksRepository {
-  Future<List<PatientTasks>> fetchTasks();
+  Stream<List<PatientTasks>> watchTasks();
 
-  Future<void> patchStatus({
-    required String taskId,
-    required TaskStatus status,
-  });
+  Future<void> refresh();
+
+  Future<void> updateStatus({required String taskId, required TaskStatus next});
 }
