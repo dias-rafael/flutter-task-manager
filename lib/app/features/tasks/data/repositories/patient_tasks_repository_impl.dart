@@ -1,5 +1,9 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+
+import '../../../../../core/network/network_types.dart';
 import '../../domain/domain.dart';
 import '../data.dart';
 
@@ -21,8 +25,10 @@ class PatientTasksRepositoryImpl implements PatientTasksRepository {
       final remoteTasks = await remote.fetchTasks();
 
       await local.saveTasks(remoteTasks);
-    } catch (_) {
-      // offline fallback
+    } on DioException catch (e) {
+      throw NetworkException(message: e.message ?? 'Network error');
+    } catch (e) {
+      throw UnknownException(message: 'Failed to refresh tasks', error: e);
     }
   }
 
@@ -66,7 +72,7 @@ class PatientTasksRepositoryImpl implements PatientTasksRepository {
         status: updated.status.name,
       );
     } catch (e) {
-      print('Failed to sync operation: $e');
+      debugPrint('Failed to sync operation: $e');
     }
   }
 }

@@ -13,3 +13,11 @@ class NetworkException implements Exception {
   final int? statusCode;
   final dynamic error;
 }
+
+/// Generic exception for unknown errors
+class UnknownException implements Exception {
+  UnknownException({required this.message, this.statusCode, this.error});
+  final String message;
+  final int? statusCode;
+  final dynamic error;
+}

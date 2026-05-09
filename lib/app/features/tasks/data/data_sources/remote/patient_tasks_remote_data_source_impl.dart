@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../../../../../core/network/network.dart';
 import '../../../domain/domain.dart';
 import '../../models/patient_tasks_model.dart';
@@ -25,6 +27,7 @@ class PatientTasksRemoteDataSourceImpl implements PatientTasksRemoteDataSource {
           )
           .toList();
     } catch (e) {
+      debugPrint('Error fetching tasks: $e');
       rethrow;
     }
   }

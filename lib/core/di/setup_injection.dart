@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../app/features/tasks/data/data.dart';
+import '../../app/features/tasks/data/sync/sync_manager.dart';
 import '../../app/features/tasks/domain/domain.dart';
 import '../../app/features/tasks/presentation/bloc/patient_tasks_bloc.dart';
 import '../network/clients/dio_client.dart';
@@ -13,13 +14,19 @@ Future<void> setupDependencies() async {
   final getIt = (injector as GetItClient).instance;
 
   // ---------------------------------------------------------------------------
+  // Sync Manager
+  // ---------------------------------------------------------------------------
+  getIt.registerLazySingleton<SyncManager>(
+    () => SyncManager(repository: getIt()),
+  );
+  // ---------------------------------------------------------------------------
   // Hive
   // ---------------------------------------------------------------------------
   await Hive.initFlutter();
 
-  Hive.registerAdapter(PatientTasksLocalModelAdapter());
-
-  Hive.registerAdapter(SyncOperationLocalModelAdapter());
+  Hive
+    ..registerAdapter(PatientTasksLocalModelAdapter())
+    ..registerAdapter(SyncOperationLocalModelAdapter());
 
   final tasksBox = await Hive.openBox<PatientTasksLocalModel>('patient_tasks');
 

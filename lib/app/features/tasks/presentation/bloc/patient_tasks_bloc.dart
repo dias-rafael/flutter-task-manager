@@ -22,8 +22,6 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
     try {
       // initial sync
 
-      await repository.refresh();
-
       // stream local db updates
 
       await emit.forEach<List<PatientTasks>>(
