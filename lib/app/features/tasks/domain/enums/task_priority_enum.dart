@@ -1,1 +1,1 @@
-enum TaskPriority { routine, urgent, asap, stat }
+enum TaskPriority { routine, urgent, asap, stat, unknown }

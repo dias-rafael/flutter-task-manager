@@ -1,9 +1,9 @@
 import 'package:equatable/equatable.dart';
 
-import 'enums/enums.dart';
+import '../enums/enums.dart';
 
-class PatientTask with EquatableMixin {
-  const PatientTask({
+class PatientTasks with EquatableMixin {
+  const PatientTasks({
     required this.id,
     required this.version,
     required this.title,

@@ -17,7 +17,7 @@
       "responses": [
         {
           "uuid": "e1599e50-9dcc-4007-9c69-6b94ad1422a1",
-          "body": "{\n  \"patient_tasks\": [\n    {\n      \"id\": \"1\",\n      \"version\": 1,\n      \"title\": \"Patient Test\",\n      \"status\": \"requested\",\n      \"priority\": \"routine\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/1\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"2026-05-09T12:18:00Z\"\n    }\n  ]\n}",
+          "body": "{\n  \"patient_tasks\": [\n    {\n      \"id\": \"1\",\n      \"version\": 1,\n      \"title\": \"Patient Test 1\",\n      \"status\": \"requested\",\n      \"priority\": \"routine\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/1\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"2026-05-09T12:18:00Z\"\n    },\n    {\n      \"id\": \"2\",\n      \"version\": 1,\n      \"title\": \"Patient Test 2\",\n      \"status\": \"requested\",\n      \"priority\": \"routine\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/2\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"2026-05-09T13:18:00Z\"\n    }\n  ]\n}",
           "latency": 0,
           "statusCode": 200,
           "label": "",

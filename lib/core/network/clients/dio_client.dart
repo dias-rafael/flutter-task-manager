@@ -3,6 +3,8 @@ import 'package:dio/dio.dart';
 import '../network.dart';
 import '../network_types.dart';
 
+const String baseUrl = 'http://localhost:3001';
+
 class DioClient implements Network {
   DioClient(this._dio);
   final Dio _dio;
@@ -10,12 +12,14 @@ class DioClient implements Network {
   @override
   Future<NetworkResponse<T>> get<T>(
     String path, {
+    String? customBaseUrl,
     Map<String, dynamic>? queryParameters,
     Map<String, String>? headers,
   }) async {
     try {
+      final url = customBaseUrl != null ? customBaseUrl + path : baseUrl + path;
       final response = await _dio.get<T>(
-        path,
+        url,
         queryParameters: queryParameters,
         options: Options(headers: headers),
       );
@@ -36,12 +40,14 @@ class DioClient implements Network {
   @override
   Future<NetworkResponse<T>> patch<T>(
     String path, {
+    String? customBaseUrl,
     dynamic data,
     Map<String, String>? headers,
   }) async {
     try {
+      final url = customBaseUrl != null ? customBaseUrl + path : baseUrl + path;
       final response = await _dio.patch<T>(
-        path,
+        url,
         data: data,
         options: Options(headers: headers),
       );
