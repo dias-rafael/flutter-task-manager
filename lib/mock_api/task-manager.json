@@ -1,0 +1,80 @@
+{
+  "uuid": "cafbb443-0a7b-451d-b4d8-b4dcf35ac52d",
+  "lastMigration": 32,
+  "name": "Task manager",
+  "endpointPrefix": "",
+  "latency": 0,
+  "port": 3001,
+  "hostname": "",
+  "folders": [],
+  "routes": [
+    {
+      "uuid": "9f064398-71df-41f3-aada-628b6106ad1d",
+      "type": "http",
+      "documentation": "",
+      "method": "get",
+      "endpoint": "tasks",
+      "responses": [
+        {
+          "uuid": "e1599e50-9dcc-4007-9c69-6b94ad1422a1",
+          "body": "{\n  \"patient_tasks\": [\n    {\n      \"id\": \"1\",\n      \"version\": 1,\n      \"title\": \"Patient Test\",\n      \"status\": \"requested\",\n      \"priority\": \"routine\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/1\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"2026-05-09T12:18:00Z\"\n    }\n  ]\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null
+    }
+  ],
+  "rootChildren": [
+    {
+      "type": "route",
+      "uuid": "9f064398-71df-41f3-aada-628b6106ad1d"
+    }
+  ],
+  "proxyMode": false,
+  "proxyHost": "",
+  "proxyRemovePrefix": false,
+  "tlsOptions": {
+    "enabled": false,
+    "type": "CERT",
+    "pfxPath": "",
+    "certPath": "",
+    "keyPath": "",
+    "caPath": "",
+    "passphrase": ""
+  },
+  "cors": true,
+  "headers": [
+    {
+      "key": "Content-Type",
+      "value": "application/json"
+    }
+  ],
+  "proxyReqHeaders": [
+    {
+      "key": "",
+      "value": ""
+    }
+  ],
+  "proxyResHeaders": [
+    {
+      "key": "",
+      "value": ""
+    }
+  ],
+  "data": [],
+  "callbacks": []
+}
