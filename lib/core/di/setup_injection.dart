@@ -1,5 +1,6 @@
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:task_manager_app/core/di/injection.dart';
+
+import 'injection.dart';
 
 Future<void> setupDependencies() async {
   final container = injector as GetItContainer;

@@ -3,16 +3,6 @@ import 'package:equatable/equatable.dart';
 import 'enums/enums.dart';
 
 class PatientTask with EquatableMixin {
-  final String id;
-  final int version;
-  final String title;
-  final TaskStatus status;
-  final TaskPriority priority;
-
-  final DateTime? dueDate;
-  final String patientReference;
-  final String? assignee;
-  final DateTime lastModified;
   const PatientTask({
     required this.id,
     required this.version,
@@ -24,6 +14,16 @@ class PatientTask with EquatableMixin {
     this.dueDate,
     this.assignee,
   });
+  final String id;
+  final int version;
+  final String title;
+  final TaskStatus status;
+  final TaskPriority priority;
+
+  final DateTime? dueDate;
+  final String patientReference;
+  final String? assignee;
+  final DateTime lastModified;
 
   @override
   List<Object?> get props => [

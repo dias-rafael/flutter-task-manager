@@ -21,11 +21,11 @@ class PatientTaskModel extends PatientTask {
       status: TaskStatus.values.firstWhere((e) => e == json['status']),
       priority: TaskPriority.values.firstWhere((e) => e == json['priority']),
       dueDate: json['dueDate'] != null
-          ? DateTime.tryParse(json['dueDate'])
+          ? DateTime.tryParse(json['dueDate'] as String)
           : null,
       patientReference: json['patientReference'] as String,
-      assignee: json['assignee'],
-      lastModified: DateTime.parse(json['lastModified']),
+      assignee: json['assignee'] as String?,
+      lastModified: DateTime.parse(json['lastModified'] as String),
     );
   }
 
