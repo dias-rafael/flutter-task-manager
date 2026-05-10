@@ -118,7 +118,9 @@ class PatientTasksRemoteDataSourceImpl implements PatientTasksRemoteDataSource {
       if (statusCode == 400 || statusCode == 403 || statusCode == 422) {
         throw ValidationException(
           message:
-              e.response?.data?['message']?.toString() ?? 'Invalid mutation',
+              (e.response?.data as Map<String, dynamic>?)?['message']
+                  ?.toString() ??
+              'Invalid mutation',
         );
       }
 

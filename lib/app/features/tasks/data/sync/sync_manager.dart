@@ -32,7 +32,9 @@ class SyncManager {
   // ----------------------------------------------------------
 
   Future<void> start() async {
-    if (_running) return;
+    if (_running) {
+      return;
+    }
 
     _running = true;
 
@@ -71,7 +73,7 @@ class SyncManager {
         debugPrint('Queue processing error: $e');
       }
 
-      await Future.delayed(const Duration(seconds: 5));
+      await Future<void>.delayed(const Duration(seconds: 5));
     }
   }
 
@@ -194,11 +196,37 @@ and was reverted.
   Future<void> _scheduleRetry(SyncOperationLocalModel operation) async {
     final retries = operation.retryCount + 1;
 
-    // exponential backoff
+    // ------------------------------------------------------
+    // MAX RETRIES
+    // ------------------------------------------------------
+
+    // const maxRetries = 3;
+
+    // if (retries >= maxRetries) {
+    //   debugPrint('''
+    // Operation permanently failed:
+    // ${operation.id}
+    // ''');
+
+    //   await local.removeOperation(operation.id);
+
+    //   onRollbackMessage?.call('''
+    // We couldn't sync one of your changes.
+    // The update was reverted.
+    // ''');
+
+    //   return;
+    // }
+
+    // ------------------------------------------------------
+    // EXPONENTIAL BACKOFF
+    // ------------------------------------------------------
 
     final delaySeconds = 1 << retries;
 
-    // jitter
+    // ------------------------------------------------------
+    // JITTER
+    // ------------------------------------------------------
 
     final jitter = Random().nextInt(3);
 
@@ -281,7 +309,7 @@ because optimistic mutation exists
         }
       },
 
-      onError: (e) {
+      onError: (Object e) {
         debugPrint('Realtime stream error: $e');
       },
     );
