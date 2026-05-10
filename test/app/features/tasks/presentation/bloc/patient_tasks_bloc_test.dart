@@ -225,5 +225,75 @@ latest query only
         await subscription.cancel();
       },
     );
+
+    // ======================================================
+    // FILTERS
+    // ======================================================
+
+    test(
+      '''
+FilterChanged emits only
+completed tasks
+''',
+      () async {
+        final emittedStates = <PatientTasksState>[];
+
+        final subscription = bloc.stream.listen(emittedStates.add);
+
+        // --------------------------------------------------
+        // LOAD INITIAL TASKS
+        // --------------------------------------------------
+
+        bloc.add(LoadTasks());
+
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+
+        tasksController.add([
+          makeTask(title: 'Pending Task', status: TaskStatus.onHold),
+
+          makeTask(
+            id: '2',
+            title: 'Completed Task',
+            status: TaskStatus.completed,
+          ),
+
+          makeTask(
+            id: '3',
+            title: 'Cancelled Task',
+            status: TaskStatus.cancelled,
+          ),
+        ]);
+
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+
+        // --------------------------------------------------
+        // APPLY FILTER
+        // --------------------------------------------------
+
+        bloc.add(FilterChanged(TaskFilter.completed));
+
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+
+        // --------------------------------------------------
+        // ASSERT
+        // --------------------------------------------------
+
+        final loadedStates = emittedStates
+            .whereType<PatientTasksLoaded>()
+            .toList();
+
+        expect(loadedStates.isNotEmpty, true);
+
+        final latest = loadedStates.last;
+
+        expect(latest.filter, TaskFilter.completed);
+
+        expect(latest.tasks.length, 1);
+
+        expect(latest.tasks.first.title, 'Completed Task');
+
+        await subscription.cancel();
+      },
+    );
   });
 }
