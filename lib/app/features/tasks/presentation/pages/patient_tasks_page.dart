@@ -78,104 +78,102 @@ class _PatientTasksViewState extends State<_PatientTasksView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const _SyncingTitle()),
+    return BlocListener<PatientTasksBloc, PatientTasksState>(
+      listener: (context, state) {
+        if (state is PatientTasksLoaded && state.alertMessage != null) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.alertMessage!)));
+        }
+      },
 
-      body: Column(
-        children: [
-          // --------------------------------------------------
-          // SEARCH
-          // --------------------------------------------------
-          Padding(
-            padding: const EdgeInsets.all(16),
+      child: Scaffold(
+        appBar: AppBar(title: const _SyncingTitle()),
 
-            child: TextField(
-              controller: _searchController,
+        body: Column(
+          children: [
+            // SEARCH
+            Padding(
+              padding: const EdgeInsets.all(16),
 
-              decoration: InputDecoration(
-                hintText: 'Search tasks',
+              child: TextField(
+                controller: _searchController,
 
-                prefixIcon: const Icon(Icons.search),
+                decoration: InputDecoration(
+                  hintText: 'Search tasks',
 
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  prefixIcon: const Icon(Icons.search),
+
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
+
+                onChanged: (value) {
+                  context.read<PatientTasksBloc>().add(SearchTasks(value));
+                },
               ),
-
-              onChanged: (value) {
-                context.read<PatientTasksBloc>().add(SearchTasks(value));
-              },
             ),
-          ),
 
-          // --------------------------------------------------
-          // CONTENT
-          // --------------------------------------------------
-          Expanded(
-            child: BlocBuilder<PatientTasksBloc, PatientTasksState>(
-              builder: (context, state) {
-                // ------------------------------
-                // LOADING
-                // ------------------------------
+            // CONTENT
+            Expanded(
+              child: BlocBuilder<PatientTasksBloc, PatientTasksState>(
+                builder: (context, state) {
+                  // LOADING
 
-                if (state is PatientTasksLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                // ------------------------------
-                // ERROR
-                // ------------------------------
-
-                if (state is PatientTasksError) {
-                  return Center(child: Text(state.message));
-                }
-
-                // ------------------------------
-                // LOADED
-                // ------------------------------
-
-                if (state is PatientTasksLoaded) {
-                  if (state.tasks.isEmpty) {
-                    return const Center(child: Text('No tasks found'));
+                  if (state is PatientTasksLoading) {
+                    return const Center(child: CircularProgressIndicator());
                   }
 
-                  return RefreshIndicator(
-                    onRefresh: _onRefresh,
+                  // ERROR
 
-                    child: ListView.builder(
-                      controller: _scrollController,
+                  if (state is PatientTasksError) {
+                    return Center(child: Text(state.message));
+                  }
 
-                      padding: const EdgeInsets.only(bottom: 24),
+                  // LOADED
 
-                      itemCount:
-                          state.tasks.length + (state.isLoadingMore ? 1 : 0),
+                  if (state is PatientTasksLoaded) {
+                    if (state.tasks.isEmpty) {
+                      return const Center(child: Text('No tasks found'));
+                    }
 
-                      itemBuilder: (context, index) {
-                        // ----------------------
-                        // PAGINATION LOADER
-                        // ----------------------
+                    return RefreshIndicator(
+                      onRefresh: _onRefresh,
 
-                        if (index >= state.tasks.length) {
-                          return const Padding(
-                            padding: EdgeInsets.all(16),
+                      child: ListView.builder(
+                        controller: _scrollController,
 
-                            child: Center(child: CircularProgressIndicator()),
-                          );
-                        }
+                        padding: const EdgeInsets.only(bottom: 24),
 
-                        final task = state.tasks[index];
+                        itemCount:
+                            state.tasks.length + (state.isLoadingMore ? 1 : 0),
 
-                        return PatientTasksCard(task: task);
-                      },
-                    ),
-                  );
-                }
+                        itemBuilder: (context, index) {
+                          // PAGINATION LOADER
 
-                return const SizedBox.shrink();
-              },
+                          if (index >= state.tasks.length) {
+                            return const Padding(
+                              padding: EdgeInsets.all(16),
+
+                              child: Center(child: CircularProgressIndicator()),
+                            );
+                          }
+
+                          final task = state.tasks[index];
+
+                          return PatientTasksCard(task: task);
+                        },
+                      ),
+                    );
+                  }
+
+                  return const SizedBox.shrink();
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

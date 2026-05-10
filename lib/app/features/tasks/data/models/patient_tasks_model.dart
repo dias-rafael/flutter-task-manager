@@ -42,8 +42,12 @@ class PatientTasksModel {
       id: id,
       version: version,
       title: title,
-      status: TaskStatus.values.firstWhere((e) => e.name == status),
-      priority: TaskPriority.values.firstWhere((e) => e.name == priority),
+      status: TaskStatus.values.firstWhere(
+        (e) => e.name.toLowerCase() == status.toLowerCase(),
+      ),
+      priority: TaskPriority.values.firstWhere(
+        (e) => e.name.toLowerCase() == priority.toLowerCase(),
+      ),
       patientReference: patientReference,
       lastModified: lastModified,
       dueDate: dueDate,

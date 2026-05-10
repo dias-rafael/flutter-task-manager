@@ -168,6 +168,28 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
     try {
       await repository.updateStatus(taskId: event.taskId, next: event.status);
     } catch (e) {
+      final current = state;
+
+      // ------------------------------------------------------
+      // TRANSIENT ERROR
+      // ------------------------------------------------------
+
+      if (current is PatientTasksLoaded) {
+        emit(current.copyWith(alertMessage: e.toString()));
+
+        // IMPORTANT:
+        // clear snackbar state
+        // so future messages can trigger again
+
+        emit(current.copyWith(clearSnackbar: true));
+
+        return;
+      }
+
+      // ------------------------------------------------------
+      // FATAL ERROR
+      // ------------------------------------------------------
+
       emit(PatientTasksError(e.toString()));
     }
   }
