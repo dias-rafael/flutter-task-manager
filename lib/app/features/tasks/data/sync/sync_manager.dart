@@ -149,6 +149,26 @@ ${operations.map((e) => e.id).toList()}
           await local.removeOperation(operation.id);
         } on ConflictException {
           await _resolveConflict(operation);
+        } on ValidationException catch (e) {
+          debugPrint('ROLLBACK: $e');
+
+          // ------------------------------------------------------
+          // remove invalid operation
+          // ------------------------------------------------------
+
+          await local.removeOperation(operation.id);
+
+          // ------------------------------------------------------
+          // fetch latest server state
+          // ------------------------------------------------------
+
+          try {
+            final remoteTask = await remote.fetchTask(operation.taskId);
+
+            await local.upsertTask(remoteTask);
+
+            debugPrint('ROLLBACK APPLY SERVER TASK');
+          } catch (_) {}
         } catch (e) {
           debugPrint('Sync operation failed: $e');
 

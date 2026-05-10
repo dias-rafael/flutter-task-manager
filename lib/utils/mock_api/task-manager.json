@@ -255,6 +255,35 @@
         }
       ],
       "responseMode": null
+    },
+    {
+      "uuid": "2354c31b-1707-49ad-9b14-2ff4e77c7637",
+      "type": "http",
+      "documentation": "",
+      "method": "get",
+      "endpoint": "tasks/:id",
+      "responses": [
+        {
+          "uuid": "8782313a-7339-46b0-b0b6-48dc97766c22",
+          "body": "{\n  \"id\": \"1\",\n  \"version\": 1,\n  \"title\": \"Patient Test 1\",\n  \"status\": \"inProgress\",\n  \"priority\": \"routine\",\n  \"due_date\": null,\n  \"reference\": \"Patient Test/1\",\n  \"assignee\": \"Practitioner/X\",\n  \"last_update\": \"{{dateTimeShift}}\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null
     }
   ],
   "rootChildren": [
@@ -265,6 +294,10 @@
     {
       "type": "route",
       "uuid": "af241bb2-515a-42cd-b6d1-96d636017fce"
+    },
+    {
+      "type": "route",
+      "uuid": "2354c31b-1707-49ad-9b14-2ff4e77c7637"
     }
   ],
   "proxyMode": false,

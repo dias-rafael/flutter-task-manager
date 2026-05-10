@@ -29,3 +29,10 @@ class ConflictException implements Exception {
   final int? statusCode;
   final dynamic error;
 }
+
+class ValidationException implements Exception {
+  ValidationException({required this.message, this.statusCode, this.error});
+  final String message;
+  final int? statusCode;
+  final dynamic error;
+}

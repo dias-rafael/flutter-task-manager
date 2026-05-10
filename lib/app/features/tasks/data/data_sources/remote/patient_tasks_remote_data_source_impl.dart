@@ -88,7 +88,6 @@ class PatientTasksRemoteDataSourceImpl implements PatientTasksRemoteDataSource {
         // in Mockoon
         headers: {
           // remove later if desired
-
           // 'x-force-conflict': 'true',
         },
       );
@@ -102,13 +101,30 @@ class PatientTasksRemoteDataSourceImpl implements PatientTasksRemoteDataSource {
         _realtimeApi.emitUpdate(updated);
       }
     } on DioException catch (e) {
+      final statusCode = e.response?.statusCode;
+
       // ------------------------------------------------------
       // CONFLICT
       // ------------------------------------------------------
 
-      if (e.response?.statusCode == 409) {
+      if (statusCode == 409) {
         throw ConflictException(message: 'Conflict detected');
       }
+
+      // ------------------------------------------------------
+      // PERMANENT REJECTION
+      // ------------------------------------------------------
+
+      if (statusCode == 400 || statusCode == 403 || statusCode == 422) {
+        throw ValidationException(
+          message:
+              e.response?.data?['message']?.toString() ?? 'Invalid mutation',
+        );
+      }
+
+      // ------------------------------------------------------
+      // TRANSIENT FAILURE
+      // ------------------------------------------------------
 
       rethrow;
     }
