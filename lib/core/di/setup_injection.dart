@@ -27,6 +27,9 @@ Future<void> setupDependencies() async {
         remote: getIt(),
         repository: getIt(),
         retryPolicy: getIt(),
+        onRollbackMessage: (message) {
+          injector.get<PatientTasksBloc>().notifyRollbackMessage(message);
+        },
       ),
     );
   // -------------------------------------------------------------------------
@@ -82,7 +85,7 @@ Future<void> setupDependencies() async {
     // -------------------------------------------------------------------------
     // Blocs
     // -------------------------------------------------------------------------
-    ..registerFactory<PatientTasksBloc>(
-      () => PatientTasksBloc(repository: getIt<PatientTasksRepository>()),
+    ..registerSingleton<PatientTasksBloc>(
+      PatientTasksBloc(repository: getIt<PatientTasksRepository>()),
     );
 }

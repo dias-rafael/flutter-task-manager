@@ -15,6 +15,7 @@ class SyncManager {
     required this.remote,
     required this.repository,
     required this.retryPolicy,
+    this.onRollbackMessage,
   });
 
   final PatientTasksLocalDataSource local;
@@ -24,6 +25,7 @@ class SyncManager {
   StreamSubscription<PatientTasks>? _realtimeSubscription;
   bool _running = false;
   bool _isProcessing = false;
+  final void Function(String)? onRollbackMessage;
 
   // ----------------------------------------------------------
   // START
@@ -168,6 +170,11 @@ ${operations.map((e) => e.id).toList()}
             await local.upsertTask(remoteTask);
 
             debugPrint('ROLLBACK APPLY SERVER TASK');
+
+            onRollbackMessage?.call('''
+This change could not be synced
+and was reverted.
+''');
           } catch (_) {}
         } catch (e) {
           debugPrint('Sync operation failed: $e');

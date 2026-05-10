@@ -50,14 +50,13 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
     // --------------------------------------------------------
 
     on<UpdateTaskStatus>(_onUpdateStatus, transformer: sequential());
+
+    on<RollbackMessageReceived>(_onRollbackMessageReceived);
   }
 
   final PatientTasksRepository repository;
-
   StreamSubscription<List<PatientTasks>>? _tasksSubscription;
-
   String _currentQuery = '';
-
   List<PatientTasks> _allTasks = [];
 
   // =========================================================
@@ -168,29 +167,26 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
     try {
       await repository.updateStatus(taskId: event.taskId, next: event.status);
     } catch (e) {
-      final current = state;
-
       // ------------------------------------------------------
-      // TRANSIENT ERROR
+      // TRANSIENT MESSAGE
       // ------------------------------------------------------
 
-      if (current is PatientTasksLoaded) {
-        emit(current.copyWith(alertMessage: e.toString()));
-
-        // IMPORTANT:
-        // clear snackbar state
-        // so future messages can trigger again
-
-        emit(current.copyWith(clearSnackbar: true));
-
-        return;
-      }
+      emit(PatientTasksUiMessage(alertMessage: e.toString()));
 
       // ------------------------------------------------------
-      // FATAL ERROR
+      // RESTORE SCREEN STATE
       // ------------------------------------------------------
 
-      emit(PatientTasksError(e.toString()));
+      final filtered = _filterTasks(_allTasks, _currentQuery);
+
+      emit(
+        PatientTasksLoaded(
+          tasks: filtered,
+          query: _currentQuery,
+          page: 0,
+          isLoadingMore: false,
+        ),
+      );
     }
   }
 
@@ -221,5 +217,41 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
     await _tasksSubscription?.cancel();
 
     return super.close();
+  }
+
+  Future<void> _onRollbackMessageReceived(
+    RollbackMessageReceived event,
+    Emitter<PatientTasksState> emit,
+  ) async {
+    // ------------------------------------------------------
+    // EMIT TRANSIENT MESSAGE
+    // ------------------------------------------------------
+
+    emit(PatientTasksUiMessage(alertMessage: event.message));
+
+    // ------------------------------------------------------
+    // RESTORE CURRENT SCREEN STATE
+    // ------------------------------------------------------
+
+    await Future.microtask(() {});
+
+    if (emit.isDone) {
+      return;
+    }
+
+    final filtered = _filterTasks(_allTasks, _currentQuery);
+
+    emit(
+      PatientTasksLoaded(
+        tasks: filtered,
+        query: _currentQuery,
+        page: 0,
+        isLoadingMore: false,
+      ),
+    );
+  }
+
+  void notifyRollbackMessage(String message) {
+    add(RollbackMessageReceived(message));
   }
 }

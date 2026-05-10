@@ -29,3 +29,9 @@ class TasksUpdated extends PatientTasksEvent {
 
   final List<PatientTasks> tasks;
 }
+
+class RollbackMessageReceived extends PatientTasksEvent {
+  RollbackMessageReceived(this.message);
+
+  final String message;
+}

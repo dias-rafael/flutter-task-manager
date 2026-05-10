@@ -80,10 +80,10 @@ class _PatientTasksViewState extends State<_PatientTasksView> {
   Widget build(BuildContext context) {
     return BlocListener<PatientTasksBloc, PatientTasksState>(
       listener: (context, state) {
-        if (state is PatientTasksLoaded && state.alertMessage != null) {
+        if (state is PatientTasksUiMessage) {
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text(state.alertMessage!)));
+          ).showSnackBar(SnackBar(content: Text(state.alertMessage)));
         }
       },
 
