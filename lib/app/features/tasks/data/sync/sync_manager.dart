@@ -6,7 +6,7 @@ import '../../../../../core/network/network_types.dart';
 import '../../domain/domain.dart';
 import '../data_sources/data_sources.dart';
 import '../models/sync_operation_local_model.dart';
-import 'retry_police.dart';
+import 'retry_policy.dart';
 
 class SyncManager {
   SyncManager({
@@ -24,6 +24,8 @@ class SyncManager {
 
   final RetryPolicy retryPolicy;
 
+  StreamSubscription<PatientTasks>? _realtimeSubscription;
+
   bool _running = false;
 
   // ----------------------------------------------------------
@@ -35,17 +37,27 @@ class SyncManager {
 
     _running = true;
 
-    // INITIAL PULL
+    // initial pull sync
 
     await _safeRefresh();
 
-    // START REALTIME
+    // subscribe realtime updates
 
     _subscribeRealtime();
 
-    // START LOOP
+    // start queue loop
 
     unawaited(_loop());
+  }
+
+  // ----------------------------------------------------------
+  // STOP
+  // ----------------------------------------------------------
+
+  Future<void> stop() async {
+    _running = false;
+
+    await _realtimeSubscription?.cancel();
   }
 
   // ----------------------------------------------------------
@@ -54,14 +66,18 @@ class SyncManager {
 
   Future<void> _loop() async {
     while (_running) {
-      await processQueue();
+      try {
+        await processQueue();
+      } catch (e) {
+        debugPrint('Queue processing error: $e');
+      }
 
       await Future.delayed(const Duration(seconds: 5));
     }
   }
 
   // ----------------------------------------------------------
-  // SAFE REFRESH
+  // REFRESH
   // ----------------------------------------------------------
 
   Future<void> _safeRefresh() async {
@@ -80,7 +96,7 @@ class SyncManager {
     final operations = await local.getPendingOperations();
 
     // IMPORTANT:
-    // ordered processing
+    // preserve ordering
 
     operations.sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
@@ -94,16 +110,20 @@ class SyncManager {
       try {
         await remote.patchStatus(
           taskId: operation.payload['task_id'] as String,
+
           version: operation.payload['version'] as int,
+
           status: operation.payload['status'] as String,
         );
 
-        // SUCCESS
+        // success
 
         await local.removeOperation(operation.id);
       } on ConflictException {
         await _resolveConflict(operation);
       } catch (e) {
+        debugPrint('Sync operation failed: $e');
+
         await _scheduleRetry(operation);
       }
     }
@@ -128,42 +148,62 @@ class SyncManager {
   // ----------------------------------------------------------
 
   Future<void> _resolveConflict(SyncOperationLocalModel operation) async {
+    debugPrint(
+      'Conflict detected for '
+      '${operation.taskId}',
+    );
+
+    // ------------------------------------------------------
     // SERVER-WINS STRATEGY
+    // ------------------------------------------------------
 
     final serverTask = await remote.fetchTask(operation.taskId);
 
-    // ROLLBACK LOCAL OPTIMISTIC STATE
+    // rollback optimistic state
 
     await local.upsertTask(serverTask);
 
-    // REMOVE FAILED OPERATION
+    // remove failed mutation
 
     await local.removeOperation(operation.id);
   }
 
   // ----------------------------------------------------------
-  // REALTIME UPDATES
+  // REALTIME
   // ----------------------------------------------------------
 
   void _subscribeRealtime() {
-    remote.watchTaskUpdates().listen((serverTask) async {
-      // IMPORTANT:
-      // DO NOT overwrite optimistic state
+    _realtimeSubscription?.cancel();
 
-      final hasPending = await local.hasPendingOperation(serverTask.id);
+    _realtimeSubscription = remote.watchTaskUpdates().listen(
+      (serverTask) async {
+        try {
+          // IMPORTANT:
+          // DO NOT overwrite optimistic
+          // local state
 
-      if (hasPending) {
-        debugPrint('''
+          final hasPending = await local.hasPendingOperation(serverTask.id);
+
+          if (hasPending) {
+            debugPrint('''
 Skipping realtime update
 because optimistic mutation exists
 ''');
 
-        return;
-      }
+            return;
+          }
 
-      // SAFE TO APPLY
+          // safe reconciliation
 
-      await local.upsertTask(serverTask);
-    });
+          await local.upsertTask(serverTask);
+        } catch (e) {
+          debugPrint('Realtime merge error: $e');
+        }
+      },
+
+      onError: (e) {
+        debugPrint('Realtime stream error: $e');
+      },
+    );
   }
 }

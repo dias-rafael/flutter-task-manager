@@ -5,90 +5,81 @@ import '../../domain/domain.dart';
 import '../bloc/patient_tasks_bloc.dart';
 
 class PatientTasksCard extends StatelessWidget {
-  const PatientTasksCard({super.key, required this.task});
+  const PatientTasksCard({required this.task, super.key});
 
   final PatientTasks task;
 
   @override
   Widget build(BuildContext context) {
-    final isCompleted = task.status == TaskStatus.completed;
-
     return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+
       child: Padding(
         padding: const EdgeInsets.all(16),
+
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+
           children: [
-            // ---------------------------------------------------------
-            // TITLE
-            // ---------------------------------------------------------
-            Text(task.title, style: Theme.of(context).textTheme.titleMedium),
+            // ------------------------------------------------
+            // TITLE + PRIORITY
+            // ------------------------------------------------
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    task.title,
+
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+
+                Chip(label: Text(task.priority.name)),
+              ],
+            ),
 
             const SizedBox(height: 8),
 
-            // ---------------------------------------------------------
+            // ------------------------------------------------
             // STATUS
-            // ---------------------------------------------------------
-            Text('Status: ${task.status.name}'),
+            // ------------------------------------------------
+            Text(
+              'Status: '
+              '${task.status.name}',
+            ),
 
-            // ---------------------------------------------------------
-            // PRIORITY
-            // ---------------------------------------------------------
-            Text('Priority: ${task.priority.name}'),
+            const SizedBox(height: 8),
 
-            // ---------------------------------------------------------
+            // ------------------------------------------------
             // PATIENT
-            // ---------------------------------------------------------
-            Text('Patient: ${task.patientReference}'),
-
-            // ---------------------------------------------------------
-            // ASSIGNEE
-            // ---------------------------------------------------------
-            if (task.assignee != null) Text('Assigned to: ${task.assignee}'),
-
-            // ---------------------------------------------------------
-            // DUE DATE
-            // ---------------------------------------------------------
-            if (task.dueDate != null) Text('Due: ${task.dueDate}'),
+            // ------------------------------------------------
+            Text(
+              'Patient: '
+              '${task.patientReference}',
+            ),
 
             const SizedBox(height: 16),
 
-            // ---------------------------------------------------------
+            // ------------------------------------------------
             // ACTIONS
-            // ---------------------------------------------------------
-            Row(
-              children: [
-                // START TASK
-                if (task.status == TaskStatus.requested)
-                  ElevatedButton(
-                    onPressed: () {
-                      context.read<PatientTasksBloc>().add(
-                        UpdateTaskStatus(
-                          taskId: task.id,
-                          status: TaskStatus.inProgress,
-                        ),
-                      );
-                    },
-                    child: const Text('Start'),
-                  ),
+            // ------------------------------------------------
+            Wrap(
+              spacing: 8,
 
-                // COMPLETE TASK
-                if (task.status == TaskStatus.inProgress)
-                  ElevatedButton(
-                    onPressed: () {
-                      context.read<PatientTasksBloc>().add(
-                        UpdateTaskStatus(
-                          taskId: task.id,
-                          status: TaskStatus.completed,
-                        ),
-                      );
-                    },
-                    child: const Text('Complete'),
-                  ),
+              children: TaskStatus.values
+                  .where((status) => status != task.status)
+                  .map((status) {
+                    return ElevatedButton(
+                      onPressed: () {
+                        context.read<PatientTasksBloc>().add(
+                          UpdateTaskStatus(taskId: task.id, status: status),
+                        );
+                      },
 
-                // COMPLETED LABEL
-                if (isCompleted) const Chip(label: Text('Completed')),
-              ],
+                      child: Text(status.name),
+                    );
+                  })
+                  .toList(),
             ),
           ],
         ),

@@ -1,44 +1,140 @@
 import 'dart:async';
 
-import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:bloc/bloc.dart';
+import 'package:bloc_concurrency/bloc_concurrency.dart';
+import 'package:stream_transform/stream_transform.dart';
 
 import '../../domain/domain.dart';
 
 part 'patient_tasks_event.dart';
 part 'patient_tasks_state.dart';
 
+EventTransformer<T> debounceRestartable<T>(Duration duration) {
+  return (events, mapper) {
+    return restartable<T>().call(events.debounce(duration), mapper);
+  };
+}
+
 class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
   PatientTasksBloc({required this.repository}) : super(PatientTasksInitial()) {
-    on<LoadTasks>(_onLoad);
+    on<LoadTasks>(_onLoad, transformer: droppable());
 
-    on<UpdateTaskStatus>(_onUpdateStatus);
+    on<TasksUpdated>(_onTasksUpdated);
+
+    on<SearchTasks>(
+      _onSearch,
+      transformer: debounceRestartable(const Duration(milliseconds: 300)),
+    );
+
+    on<LoadNextPage>(_onLoadNextPage, transformer: droppable());
+
+    on<UpdateTaskStatus>(_onUpdateStatus, transformer: sequential());
   }
 
   final PatientTasksRepository repository;
+  StreamSubscription<List<PatientTasks>>? _tasksSubscription;
+  String _currentQuery = '';
+  List<PatientTasks> _allTasks = [];
+
+  // =========================================================
+  // LOAD
+  // =========================================================
 
   Future<void> _onLoad(LoadTasks event, Emitter<PatientTasksState> emit) async {
     emit(PatientTasksLoading());
 
+    await _tasksSubscription?.cancel();
+
+    _tasksSubscription = repository.watchTasks().listen((tasks) {
+      add(TasksUpdated(tasks));
+    });
+
     try {
-      // initial sync
-
-      // stream local db updates
-
-      await emit.forEach<List<PatientTasks>>(
-        repository.watchTasks(),
-
-        onData: (tasks) {
-          return PatientTasksLoaded(tasks);
-        },
-
-        onError: (error, stackTrace) {
-          return PatientTasksError(error.toString());
-        },
-      );
-    } catch (e) {
-      emit(PatientTasksError(e.toString()));
+      await repository.searchTasks(query: _currentQuery, page: 0);
+    } catch (_) {
+      // offline-first:
+      // keep local cache
     }
   }
+
+  // =========================================================
+  // LOCAL STREAM UPDATE
+  // =========================================================
+
+  void _onTasksUpdated(TasksUpdated event, Emitter<PatientTasksState> emit) {
+    _allTasks = List<PatientTasks>.from(event.tasks);
+
+    final filtered = _filterTasks(_allTasks, _currentQuery);
+
+    final current = state;
+
+    if (current is PatientTasksLoaded) {
+      emit(current.copyWith(tasks: filtered));
+
+      return;
+    }
+
+    emit(
+      PatientTasksLoaded(
+        tasks: filtered,
+        query: _currentQuery,
+        page: 0,
+        isLoadingMore: false,
+      ),
+    );
+  }
+
+  // =========================================================
+  // SEARCH
+  // =========================================================
+
+  Future<void> _onSearch(
+    SearchTasks event,
+    Emitter<PatientTasksState> emit,
+  ) async {
+    _currentQuery = event.query;
+
+    final current = state;
+
+    if (current is! PatientTasksLoaded) {
+      return;
+    }
+
+    final filtered = _filterTasks(_allTasks, _currentQuery);
+
+    emit(current.copyWith(tasks: filtered));
+  }
+
+  // =========================================================
+  // PAGINATION
+  // =========================================================
+
+  Future<void> _onLoadNextPage(
+    LoadNextPage event,
+    Emitter<PatientTasksState> emit,
+  ) async {
+    final current = state;
+
+    if (current is! PatientTasksLoaded) {
+      return;
+    }
+
+    try {
+      emit(current.copyWith(isLoadingMore: true));
+
+      final nextPage = current.page + 1;
+
+      await repository.searchTasks(query: _currentQuery, page: nextPage);
+
+      emit(current.copyWith(page: nextPage, isLoadingMore: false));
+    } catch (_) {
+      emit(current.copyWith(isLoadingMore: false));
+    }
+  }
+
+  // =========================================================
+  // UPDATE STATUS
+  // =========================================================
 
   Future<void> _onUpdateStatus(
     UpdateTaskStatus event,
@@ -49,5 +145,30 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
     } catch (e) {
       emit(PatientTasksError(e.toString()));
     }
+  }
+
+  // =========================================================
+  // DISPOSE
+  // =========================================================
+
+  @override
+  Future<void> close() async {
+    await _tasksSubscription?.cancel();
+
+    return super.close();
+  }
+
+  List<PatientTasks> _filterTasks(List<PatientTasks> tasks, String query) {
+    if (query.isEmpty) {
+      return tasks;
+    }
+
+    final lower = query.toLowerCase();
+
+    return tasks.where((task) {
+      return task.title.toLowerCase().contains(lower) ||
+          task.patientReference.toLowerCase().contains(lower) ||
+          task.status.name.toLowerCase().contains(lower);
+    }).toList();
   }
 }

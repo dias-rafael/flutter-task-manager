@@ -10,73 +10,170 @@ class PatientTasksPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => injector.get<PatientTasksBloc>()..add(LoadTasks()),
-      child: const PatientTasksView(),
+    return BlocProvider<PatientTasksBloc>(
+      create: (_) => injector.get<PatientTasksBloc>(),
+
+      child: const _PatientTasksView(),
     );
   }
 }
 
-class PatientTasksView extends StatelessWidget {
-  const PatientTasksView({super.key});
+class _PatientTasksView extends StatefulWidget {
+  const _PatientTasksView();
+
+  @override
+  State<_PatientTasksView> createState() => _PatientTasksViewState();
+}
+
+class _PatientTasksViewState extends State<_PatientTasksView> {
+  late final ScrollController _scrollController;
+
+  late final TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _scrollController = ScrollController()..addListener(_onScroll);
+
+    _searchController = TextEditingController();
+
+    context.read<PatientTasksBloc>().add(LoadTasks());
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+
+    _searchController.dispose();
+
+    super.dispose();
+  }
+
+  // ----------------------------------------------------------
+  // PAGINATION
+  // ----------------------------------------------------------
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+
+    final threshold = _scrollController.position.maxScrollExtent - 200;
+
+    if (_scrollController.position.pixels >= threshold) {
+      context.read<PatientTasksBloc>().add(LoadNextPage());
+    }
+  }
+
+  // ----------------------------------------------------------
+  // REFRESH
+  // ----------------------------------------------------------
+
+  Future<void> _onRefresh() async {
+    context.read<PatientTasksBloc>().add(LoadTasks());
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Patient Tasks')),
-      body: BlocBuilder<PatientTasksBloc, PatientTasksState>(
-        builder: (context, state) {
-          // ---------------------------------------------------------------
-          // LOADING
-          // ---------------------------------------------------------------
 
-          if (state is PatientTasksLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: Column(
+        children: [
+          // --------------------------------------------------
+          // SEARCH
+          // --------------------------------------------------
+          Padding(
+            padding: const EdgeInsets.all(16),
 
-          // ---------------------------------------------------------------
-          // ERROR
-          // ---------------------------------------------------------------
+            child: TextField(
+              controller: _searchController,
 
-          if (state is PatientTasksError) {
-            return Center(child: Text(state.message));
-          }
+              decoration: InputDecoration(
+                hintText: 'Search tasks',
 
-          // ---------------------------------------------------------------
-          // LOADED
-          // ---------------------------------------------------------------
+                prefixIcon: const Icon(Icons.search),
 
-          if (state is PatientTasksLoaded) {
-            final tasks = state.tasks;
-
-            if (tasks.isEmpty) {
-              return const Center(child: Text('No tasks found'));
-            }
-
-            return RefreshIndicator(
-              onRefresh: () async {
-                context.read<PatientTasksBloc>().add(LoadTasks());
-              },
-              child: ListView.separated(
-                padding: const EdgeInsets.all(16),
-
-                itemCount: tasks.length,
-
-                separatorBuilder: (_, __) {
-                  return const SizedBox(height: 12);
-                },
-
-                itemBuilder: (context, index) {
-                  final task = tasks[index];
-
-                  return PatientTasksCard(task: task);
-                },
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-            );
-          }
 
-          return const SizedBox.shrink();
-        },
+              onChanged: (value) {
+                context.read<PatientTasksBloc>().add(SearchTasks(value));
+              },
+            ),
+          ),
+
+          // --------------------------------------------------
+          // CONTENT
+          // --------------------------------------------------
+          Expanded(
+            child: BlocBuilder<PatientTasksBloc, PatientTasksState>(
+              builder: (context, state) {
+                // ------------------------------
+                // LOADING
+                // ------------------------------
+
+                if (state is PatientTasksLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                // ------------------------------
+                // ERROR
+                // ------------------------------
+
+                if (state is PatientTasksError) {
+                  return Center(child: Text(state.message));
+                }
+
+                // ------------------------------
+                // LOADED
+                // ------------------------------
+
+                if (state is PatientTasksLoaded) {
+                  if (state.tasks.isEmpty) {
+                    return const Center(child: Text('No tasks found'));
+                  }
+
+                  return RefreshIndicator(
+                    onRefresh: _onRefresh,
+
+                    child: ListView.builder(
+                      controller: _scrollController,
+
+                      padding: const EdgeInsets.only(bottom: 24),
+
+                      itemCount:
+                          state.tasks.length + (state.isLoadingMore ? 1 : 0),
+
+                      itemBuilder: (context, index) {
+                        // ----------------------
+                        // PAGINATION LOADER
+                        // ----------------------
+
+                        if (index >= state.tasks.length) {
+                          return const Padding(
+                            padding: EdgeInsets.all(16),
+
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        }
+
+                        final task = state.tasks[index];
+
+                        return PatientTasksCard(task: task);
+                      },
+                    ),
+                  );
+                }
+
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

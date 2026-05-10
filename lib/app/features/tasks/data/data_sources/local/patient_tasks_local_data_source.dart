@@ -19,4 +19,6 @@ abstract class PatientTasksLocalDataSource {
   Future<bool> hasPendingOperation(String taskId);
 
   Future<void> updateOperation(SyncOperationLocalModel operation);
+
+  Future<void> replaceTasks(List<PatientTasks> tasks);
 }

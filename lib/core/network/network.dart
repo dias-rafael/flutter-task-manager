@@ -1,19 +1,20 @@
-import 'network_types.dart';
+import 'package:dio/dio.dart';
 
 abstract class Network {
-  Future<NetworkResponse<T>> get<T>(
+  Future<Response<T>> get<T>(
     String path, {
-    String customBaseUrl,
+    String? customBaseUrl,
     Map<String, dynamic>? queryParameters,
-    Map<String, String>? headers,
+    Map<String, dynamic>? headers,
+    CancelToken? cancelToken,
   });
 
-  Future<NetworkResponse<T>> patch<T>(
+  Future<Response<T>> patch<T>(
     String path, {
-    String customBaseUrl,
+    String? customBaseUrl,
     dynamic data,
-    Map<String, String>? headers,
+    Map<String, dynamic>? queryParameters,
+    Map<String, dynamic>? headers,
+    CancelToken? cancelToken,
   });
-
-  // Add post, delete, etc. as needed
 }
