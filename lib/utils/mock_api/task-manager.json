@@ -131,9 +131,9 @@
             {
               "target": "query",
               "modifier": "query",
-              "value": "",
-              "invert": true,
-              "operator": "equals"
+              "value": "\"\"",
+              "invert": false,
+              "operator": "empty_array"
             }
           ],
           "rulesOperator": "AND",

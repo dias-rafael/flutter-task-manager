@@ -21,6 +21,18 @@
             "request": "launch",
             "type": "dart",
             "flutterMode": "release"
+        },
+        {
+        "name": "Flutter Web (Chrome - Disable CORS)",
+        "request": "launch",
+        "type": "dart",
+        "flutterMode": "debug",
+        "deviceId": "chrome",
+        "args": [
+            "--web-browser-flag=--disable-web-security",
+            "--web-browser-flag=--disable-site-isolation-trials",
+            "--web-port=8080"
+        ]
         }
     ]
 }
