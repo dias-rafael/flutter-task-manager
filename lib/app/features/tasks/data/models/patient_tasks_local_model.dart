@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:hive/hive.dart';
 
 import '../../domain/domain.dart';
@@ -50,8 +51,12 @@ class PatientTasksLocalModel extends HiveObject {
       id: id,
       version: version,
       title: title,
-      status: TaskStatus.values.firstWhere((e) => e.name == status),
-      priority: TaskPriority.values.firstWhere((e) => e.name == priority),
+      status:
+          TaskStatus.values.firstWhereOrNull((e) => e.name == status) ??
+          TaskStatus.unknown,
+      priority:
+          TaskPriority.values.firstWhereOrNull((e) => e.name == priority) ??
+          TaskPriority.unknown,
       patientReference: patientReference,
       lastModified: lastModified,
       dueDate: dueDate,

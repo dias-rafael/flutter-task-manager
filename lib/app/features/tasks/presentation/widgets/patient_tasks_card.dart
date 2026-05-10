@@ -67,8 +67,14 @@ class PatientTasksCard extends StatelessWidget {
               spacing: 8,
 
               children: TaskStatus.values
-                  .where((status) => status != task.status)
+                  .where(
+                    (status) =>
+                        status != task.status && status != TaskStatus.unknown,
+                  )
                   .map((status) {
+                    if (task.status == TaskStatus.unknown) {
+                      return const SizedBox.shrink();
+                    }
                     return ElevatedButton(
                       onPressed: () {
                         context.read<PatientTasksBloc>().add(

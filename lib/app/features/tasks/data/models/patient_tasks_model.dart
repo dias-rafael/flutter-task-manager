@@ -1,3 +1,5 @@
+import 'package:collection/collection.dart';
+
 import '../../domain/domain.dart';
 
 class PatientTasksModel {
@@ -42,12 +44,16 @@ class PatientTasksModel {
       id: id,
       version: version,
       title: title,
-      status: TaskStatus.values.firstWhere(
-        (e) => e.name.toLowerCase() == status.toLowerCase(),
-      ),
-      priority: TaskPriority.values.firstWhere(
-        (e) => e.name.toLowerCase() == priority.toLowerCase(),
-      ),
+      status:
+          TaskStatus.values.firstWhereOrNull(
+            (e) => e.name.toLowerCase() == status.toLowerCase(),
+          ) ??
+          TaskStatus.unknown,
+      priority:
+          TaskPriority.values.firstWhereOrNull(
+            (e) => e.name.toLowerCase() == priority.toLowerCase(),
+          ) ??
+          TaskPriority.unknown,
       patientReference: patientReference,
       lastModified: lastModified,
       dueDate: dueDate,
