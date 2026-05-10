@@ -8,4 +8,8 @@ abstract class PatientTasksRemoteDataSource {
     required int version,
     required String status,
   });
+
+  Stream<PatientTasks> watchTaskUpdates();
+
+  Future<PatientTasks> fetchTask(String taskId);
 }

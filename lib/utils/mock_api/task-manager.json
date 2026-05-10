@@ -65,62 +65,6 @@
         }
       ],
       "responseMode": null
-    },
-    {
-      "uuid": "54ed1831-94fe-4851-b2d4-c7c383f96d7c",
-      "type": "crud",
-      "documentation": "",
-      "method": "",
-      "endpoint": "taskscrud",
-      "responses": [
-        {
-          "uuid": "04dd0760-9c8c-47e6-9316-1f3be4bdc398",
-          "body": "{}",
-          "latency": 0,
-          "statusCode": 200,
-          "label": "",
-          "headers": [],
-          "bodyType": "DATABUCKET",
-          "filePath": "",
-          "databucketID": "77bk",
-          "sendFileAsBody": false,
-          "rules": [],
-          "rulesOperator": "OR",
-          "disableTemplating": false,
-          "fallbackTo404": false,
-          "default": true,
-          "crudKey": "id",
-          "callbacks": []
-        },
-        {
-          "uuid": "31ce5d0e-d7ff-4d47-b8d9-ac0b2c014065",
-          "body": "{\n  \"patient_tasks\": [\n    {\n      \"id\": \"1\",\n      \"version\": 1,\n      \"title\": \"Patient Test 1\",\n      \"status\": \"requested\",\n      \"priority\": \"routine\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/1\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"{{dateTimeShift}}\"\n    },\n    {\n      \"id\": \"2\",\n      \"version\": 1,\n      \"title\": \"Patient Test 2\",\n      \"status\": \"completed\",\n      \"priority\": \"routine\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/2\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"{{dateTimeShift}}\"\n    }\n  ]\n}",
-          "latency": 0,
-          "statusCode": 200,
-          "label": "",
-          "headers": [],
-          "bodyType": "INLINE",
-          "filePath": "",
-          "databucketID": "",
-          "sendFileAsBody": false,
-          "rules": [
-            {
-              "target": "params",
-              "modifier": "id",
-              "value": "2",
-              "invert": false,
-              "operator": "equals"
-            }
-          ],
-          "rulesOperator": "OR",
-          "disableTemplating": false,
-          "fallbackTo404": false,
-          "default": false,
-          "crudKey": "id",
-          "callbacks": []
-        }
-      ],
-      "responseMode": null
     }
   ],
   "rootChildren": [
@@ -131,10 +75,6 @@
     {
       "type": "route",
       "uuid": "af241bb2-515a-42cd-b6d1-96d636017fce"
-    },
-    {
-      "type": "route",
-      "uuid": "54ed1831-94fe-4851-b2d4-c7c383f96d7c"
     }
   ],
   "proxyMode": false,

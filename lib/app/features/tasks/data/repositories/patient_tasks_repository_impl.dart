@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../../../core/network/network_types.dart';
 import '../../domain/domain.dart';
@@ -11,7 +11,6 @@ class PatientTasksRepositoryImpl implements PatientTasksRepository {
   PatientTasksRepositoryImpl({required this.local, required this.remote});
 
   final PatientTasksLocalDataSource local;
-
   final PatientTasksRemoteDataSource remote;
 
   @override
@@ -41,38 +40,28 @@ class PatientTasksRepositoryImpl implements PatientTasksRepository {
 
     final current = tasks.firstWhere((e) => e.id == taskId);
 
-    final updated = current.transitionTo(next);
+    final optimistic = current.transitionTo(next);
 
     // optimistic update
 
-    await local.upsertTask(updated);
+    await local.upsertTask(optimistic);
 
-    // queue operation
+    // enqueue
 
-    await local.enqueueOperation(
-      SyncOperationLocalModel(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-
-        taskId: updated.id,
-
-        payload: {
-          'task_id': updated.id,
-          'version': updated.version,
-          'status': updated.status.name,
-        },
-      ),
+    final operation = SyncOperationLocalModel(
+      id: const Uuid().v4(),
+      taskId: current.id,
+      type: 'patch_status',
+      retryCount: 0,
+      createdAt: DateTime.now(),
+      nextRetryAt: DateTime.now(),
+      payload: {
+        'task_id': current.id,
+        'version': optimistic.version,
+        'status': optimistic.status.name,
+      },
     );
 
-    // try sync
-
-    try {
-      await remote.patchStatus(
-        taskId: updated.id,
-        version: updated.version,
-        status: updated.status.name,
-      );
-    } catch (e) {
-      debugPrint('Failed to sync operation: $e');
-    }
+    await local.enqueueOperation(operation);
   }
 }

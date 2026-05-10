@@ -21,3 +21,11 @@ class UnknownException implements Exception {
   final int? statusCode;
   final dynamic error;
 }
+
+/// Generic exception for conflict errors
+class ConflictException implements Exception {
+  ConflictException({required this.message, this.statusCode, this.error});
+  final String message;
+  final int? statusCode;
+  final dynamic error;
+}

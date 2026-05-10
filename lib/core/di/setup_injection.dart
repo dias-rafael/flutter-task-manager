@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../app/features/tasks/data/data.dart';
+import '../../app/features/tasks/data/sync/retry_police.dart';
 import '../../app/features/tasks/data/sync/sync_manager.dart';
 import '../../app/features/tasks/domain/domain.dart';
 import '../../app/features/tasks/presentation/bloc/patient_tasks_bloc.dart';
@@ -13,15 +14,22 @@ import 'dependency_injection.dart';
 Future<void> setupDependencies() async {
   final getIt = (injector as GetItClient).instance;
 
-  // ---------------------------------------------------------------------------
+  // -------------------------------------------------------------------------
   // Sync Manager
-  // ---------------------------------------------------------------------------
-  getIt.registerLazySingleton<SyncManager>(
-    () => SyncManager(repository: getIt()),
-  );
-  // ---------------------------------------------------------------------------
+  // -------------------------------------------------------------------------
+  getIt
+    ..registerLazySingleton(RetryPolicy.new)
+    ..registerLazySingleton(
+      () => SyncManager(
+        local: getIt(),
+        remote: getIt(),
+        repository: getIt(),
+        retryPolicy: getIt(),
+      ),
+    );
+  // -------------------------------------------------------------------------
   // Hive
-  // ---------------------------------------------------------------------------
+  // -------------------------------------------------------------------------
   await Hive.initFlutter();
 
   Hive
@@ -35,14 +43,14 @@ Future<void> setupDependencies() async {
   getIt
     ..registerLazySingleton(() => tasksBox)
     ..registerLazySingleton(() => queueBox)
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // Network
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     ..registerLazySingleton<Dio>(Dio.new)
     ..registerLazySingleton<Network>(() => DioClient(getIt<Dio>()))
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // Data Sources
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     ..registerLazySingleton<PatientTasksRemoteDataSource>(
       () => PatientTasksRemoteDataSourceImpl(getIt<Network>()),
     )
@@ -50,18 +58,18 @@ Future<void> setupDependencies() async {
       () =>
           PatientTasksLocalDataSourceImpl(tasksBox: getIt(), queueBox: getIt()),
     )
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // Repositories
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     ..registerLazySingleton<PatientTasksRepository>(
       () => PatientTasksRepositoryImpl(
         local: getIt<PatientTasksLocalDataSource>(),
         remote: getIt<PatientTasksRemoteDataSource>(),
       ),
     )
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     // Blocs
-    // ---------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
     ..registerFactory<PatientTasksBloc>(
       () => PatientTasksBloc(repository: getIt<PatientTasksRepository>()),
     );

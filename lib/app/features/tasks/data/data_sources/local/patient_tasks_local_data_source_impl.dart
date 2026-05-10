@@ -69,4 +69,14 @@ class PatientTasksLocalDataSourceImpl implements PatientTasksLocalDataSource {
 
     _controller.add(tasks);
   }
+
+  @override
+  Future<bool> hasPendingOperation(String taskId) async {
+    return queueBox.values.any((e) => e.taskId == taskId);
+  }
+
+  @override
+  Future<void> updateOperation(SyncOperationLocalModel operation) async {
+    await queueBox.put(operation.id, operation);
+  }
 }

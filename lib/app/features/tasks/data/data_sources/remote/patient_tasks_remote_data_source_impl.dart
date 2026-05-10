@@ -43,4 +43,18 @@ class PatientTasksRemoteDataSourceImpl implements PatientTasksRemoteDataSource {
       data: {'version': version, 'status': status},
     );
   }
+
+  @override
+  Stream<PatientTasks> watchTaskUpdates() {
+    return _client.taskUpdates().map((dto) => dto.toEntity());
+  }
+
+  @override
+  Future<PatientTasks> fetchTask(String taskId) async {
+    final response = await _client.get('/tasks/$taskId');
+
+    return PatientTasksModel.fromJson(
+      response.data as Map<String, dynamic>,
+    ).toEntity();
+  }
 }
