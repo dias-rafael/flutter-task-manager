@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../core/di/dependency_injection.dart';
+import '../../domain/enums/task_filter_enum.dart';
 import '../bloc/patient_tasks_bloc.dart';
 import '../widgets/patient_tasks_card.dart';
 
@@ -113,6 +114,50 @@ class _PatientTasksViewState extends State<_PatientTasksView> {
                   context.read<PatientTasksBloc>().add(SearchTasks(value));
                 },
               ),
+            ),
+
+            // FILTERS
+            BlocBuilder<PatientTasksBloc, PatientTasksState>(
+              builder: (context, state) {
+                if (state is! PatientTasksLoaded) {
+                  return const SizedBox();
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: TaskFilter.values.map((filter) {
+                        final selected = state.filter == filter;
+
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text(switch (filter) {
+                              TaskFilter.all => 'All',
+                              TaskFilter.pending => 'Pending',
+                              TaskFilter.completed => 'Completed',
+                              TaskFilter.cancelled => 'Cancelled',
+                            }),
+
+                            selected: selected,
+
+                            onSelected: (_) {
+                              context.read<PatientTasksBloc>().add(
+                                FilterChanged(filter),
+                              );
+                            },
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                );
+              },
             ),
 
             // CONTENT

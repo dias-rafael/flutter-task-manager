@@ -52,12 +52,15 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
     on<UpdateTaskStatus>(_onUpdateStatus, transformer: sequential());
 
     on<RollbackMessageReceived>(_onRollbackMessageReceived);
+
+    on<FilterChanged>(_onFilterChanged);
   }
 
   final PatientTasksRepository repository;
   StreamSubscription<List<PatientTasks>>? _tasksSubscription;
   String _currentQuery = '';
   List<PatientTasks> _allTasks = [];
+  TaskFilter _currentFilter = TaskFilter.all;
 
   // =========================================================
   // LOAD
@@ -88,7 +91,7 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
   void _onTasksUpdated(TasksUpdated event, Emitter<PatientTasksState> emit) {
     _allTasks = List<PatientTasks>.from(event.tasks);
 
-    final filtered = _filterTasks(_allTasks, _currentQuery);
+    final filtered = _applyFilters(_allTasks);
 
     final current = state;
 
@@ -104,6 +107,7 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
         query: _currentQuery,
         page: 0,
         isLoadingMore: false,
+        filter: _currentFilter,
       ),
     );
   }
@@ -124,7 +128,7 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
       return;
     }
 
-    final filtered = _filterTasks(_allTasks, _currentQuery);
+    final filtered = _applyFilters(_allTasks);
 
     emit(current.copyWith(tasks: filtered));
   }
@@ -177,7 +181,7 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
       // RESTORE SCREEN STATE
       // ------------------------------------------------------
 
-      final filtered = _filterTasks(_allTasks, _currentQuery);
+      final filtered = _applyFilters(_allTasks);
 
       emit(
         PatientTasksLoaded(
@@ -185,6 +189,7 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
           query: _currentQuery,
           page: 0,
           isLoadingMore: false,
+          filter: _currentFilter,
         ),
       );
     }
@@ -194,19 +199,19 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
   // LOCAL FILTER
   // =========================================================
 
-  List<PatientTasks> _filterTasks(List<PatientTasks> tasks, String query) {
-    if (query.isEmpty) {
-      return tasks;
-    }
+  // List<PatientTasks> _filterTasks(List<PatientTasks> tasks, String query) {
+  //   if (query.isEmpty) {
+  //     return tasks;
+  //   }
 
-    final lower = query.toLowerCase();
+  //   final lower = query.toLowerCase();
 
-    return tasks.where((task) {
-      return task.title.toLowerCase().contains(lower) ||
-          task.patientReference.toLowerCase().contains(lower) ||
-          task.status.name.toLowerCase().contains(lower);
-    }).toList();
-  }
+  //   return tasks.where((task) {
+  //     return task.title.toLowerCase().contains(lower) ||
+  //         task.patientReference.toLowerCase().contains(lower) ||
+  //         task.status.name.toLowerCase().contains(lower);
+  //   }).toList();
+  // }
 
   // =========================================================
   // DISPOSE
@@ -239,7 +244,7 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
       return;
     }
 
-    final filtered = _filterTasks(_allTasks, _currentQuery);
+    final filtered = _applyFilters(_allTasks);
 
     emit(
       PatientTasksLoaded(
@@ -247,11 +252,71 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
         query: _currentQuery,
         page: 0,
         isLoadingMore: false,
+        filter: _currentFilter,
       ),
     );
   }
 
   void notifyRollbackMessage(String message) {
     add(RollbackMessageReceived(message));
+  }
+
+  Future<void> _onFilterChanged(
+    FilterChanged event,
+    Emitter<PatientTasksState> emit,
+  ) async {
+    _currentFilter = event.filter;
+
+    final filtered = _applyFilters(_allTasks);
+
+    emit(
+      PatientTasksLoaded(
+        tasks: filtered,
+        query: _currentQuery,
+        filter: _currentFilter,
+        page: 0,
+        isLoadingMore: false,
+      ),
+    );
+  }
+
+  List<PatientTasks> _applyFilters(List<PatientTasks> tasks) {
+    // ------------------------------------------------------
+    // SEARCH FILTER
+    // ------------------------------------------------------
+
+    final searchFiltered = tasks.where((task) {
+      final query = _currentQuery.toLowerCase();
+
+      return task.title.toLowerCase().contains(query);
+    }).toList();
+
+    // ------------------------------------------------------
+    // STATUS FILTER
+    // ------------------------------------------------------
+
+    switch (_currentFilter) {
+      case TaskFilter.all:
+        return searchFiltered;
+
+      case TaskFilter.pending:
+        return searchFiltered
+            .where(
+              (task) =>
+                  task.status != TaskStatus.completed &&
+                  task.status != TaskStatus.cancelled,
+            )
+            .toList();
+
+      case TaskFilter.completed:
+        return searchFiltered
+            .where((task) => task.status == TaskStatus.completed)
+            .toList();
+
+      case TaskFilter.cancelled:
+        return searchFiltered
+            .where((task) => task.status == TaskStatus.cancelled)
+            .toList();
+    }
   }
 }

@@ -35,3 +35,9 @@ class RollbackMessageReceived extends PatientTasksEvent {
 
   final String message;
 }
+
+class FilterChanged extends PatientTasksEvent {
+  FilterChanged(this.filter);
+
+  final TaskFilter filter;
+}
