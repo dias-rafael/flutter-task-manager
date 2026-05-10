@@ -14,7 +14,8 @@ To run the project with the fake API:
 
 - start the Mockoon server
 - ensure the API is running on: http://localhost:3001
-**Android emulators may not be able to access localhost. Run the command in the terminal: adb reverse tcp:3001 tcp:3001**
+
+Android emulators may not be able to access localhost. Run the command in the terminal: adb reverse tcp:3001 tcp:3001
 
 # Architecture Decision Records (ADR)
 
