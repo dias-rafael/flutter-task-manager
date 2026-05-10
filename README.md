@@ -188,7 +188,7 @@ Given additional time, I would focus on the following improvements:
 - better feedback messages
 - apply theme (colors, styles...)
 
-### 7. other deprioritized improvements
+### 7. Other deprioritized improvements
 - app icon
 - splash screen
 - navigation (routes)
