@@ -1,19 +1,16 @@
 # flutter-task-manager
 A offline-first Task Manager APP using Flutter Bloc and Hive
 
-### Requirements
+## Requirements
 - [Flutter](Version: 3.41.9) - https://docs.flutter.dev/install
 - [Mockoon](Local API) - https://mockoon.com/tutorials/getting-started/ (only for simulate API)
 
-## TODO — Mockoon Setup
+### TODO — Mockoon Setup
 
 To run the project with the fake API:
 
 - install Mockoon
-- import the environment file located at:
-
-```txt
-lib/utils/mock_api/task-manager.json
+- import the environment file located at: lib/utils/mock_api/task-manager.json
 
 - start the Mockoon server
 - ensure the API is running on: http://localhost:3001
