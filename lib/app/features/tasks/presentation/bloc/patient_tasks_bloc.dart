@@ -17,23 +17,47 @@ EventTransformer<T> debounceRestartable<T>(Duration duration) {
 
 class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
   PatientTasksBloc({required this.repository}) : super(PatientTasksInitial()) {
+    // --------------------------------------------------------
+    // LOAD
+    // --------------------------------------------------------
+
     on<LoadTasks>(_onLoad, transformer: droppable());
+
+    // --------------------------------------------------------
+    // LOCAL TASK STREAM
+    // --------------------------------------------------------
 
     on<TasksUpdated>(_onTasksUpdated);
 
+    // --------------------------------------------------------
+    // SEARCH
+    // --------------------------------------------------------
+
     on<SearchTasks>(
       _onSearch,
+
       transformer: debounceRestartable(const Duration(milliseconds: 300)),
     );
 
+    // --------------------------------------------------------
+    // PAGINATION
+    // --------------------------------------------------------
+
     on<LoadNextPage>(_onLoadNextPage, transformer: droppable());
+
+    // --------------------------------------------------------
+    // UPDATE STATUS
+    // --------------------------------------------------------
 
     on<UpdateTaskStatus>(_onUpdateStatus, transformer: sequential());
   }
 
   final PatientTasksRepository repository;
+
   StreamSubscription<List<PatientTasks>>? _tasksSubscription;
+
   String _currentQuery = '';
+
   List<PatientTasks> _allTasks = [];
 
   // =========================================================
@@ -41,24 +65,25 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
   // =========================================================
 
   Future<void> _onLoad(LoadTasks event, Emitter<PatientTasksState> emit) async {
-    emit(PatientTasksLoading());
-
     await _tasksSubscription?.cancel();
+
+    // --------------------------------------------------------
+    // LOCAL SOURCE OF TRUTH
+    // --------------------------------------------------------
 
     _tasksSubscription = repository.watchTasks().listen((tasks) {
       add(TasksUpdated(tasks));
     });
 
-    try {
-      await repository.searchTasks(query: _currentQuery, page: 0);
-    } catch (_) {
-      // offline-first:
-      // keep local cache
-    }
+    // --------------------------------------------------------
+    // BACKGROUND REMOTE SYNC
+    // --------------------------------------------------------
+
+    unawaited(repository.searchTasks(query: _currentQuery, page: 0));
   }
 
   // =========================================================
-  // LOCAL STREAM UPDATE
+  // LOCAL TASK UPDATE
   // =========================================================
 
   void _onTasksUpdated(TasksUpdated event, Emitter<PatientTasksState> emit) {
@@ -148,15 +173,8 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
   }
 
   // =========================================================
-  // DISPOSE
+  // LOCAL FILTER
   // =========================================================
-
-  @override
-  Future<void> close() async {
-    await _tasksSubscription?.cancel();
-
-    return super.close();
-  }
 
   List<PatientTasks> _filterTasks(List<PatientTasks> tasks, String query) {
     if (query.isEmpty) {
@@ -170,5 +188,16 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
           task.patientReference.toLowerCase().contains(lower) ||
           task.status.name.toLowerCase().contains(lower);
     }).toList();
+  }
+
+  // =========================================================
+  // DISPOSE
+  // =========================================================
+
+  @override
+  Future<void> close() async {
+    await _tasksSubscription?.cancel();
+
+    return super.close();
   }
 }

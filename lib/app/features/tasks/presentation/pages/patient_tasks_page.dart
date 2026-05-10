@@ -11,12 +11,16 @@ class PatientTasksPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider<PatientTasksBloc>(
-      create: (_) => injector.get<PatientTasksBloc>(),
+      create: (_) => injector.get<PatientTasksBloc>()..add(LoadTasks()),
 
       child: const _PatientTasksView(),
     );
   }
 }
+
+// ============================================================
+// INTERNAL VIEW
+// ============================================================
 
 class _PatientTasksView extends StatefulWidget {
   const _PatientTasksView();
@@ -37,8 +41,6 @@ class _PatientTasksViewState extends State<_PatientTasksView> {
     _scrollController = ScrollController()..addListener(_onScroll);
 
     _searchController = TextEditingController();
-
-    context.read<PatientTasksBloc>().add(LoadTasks());
   }
 
   @override
@@ -50,9 +52,9 @@ class _PatientTasksViewState extends State<_PatientTasksView> {
     super.dispose();
   }
 
-  // ----------------------------------------------------------
+  // =========================================================
   // PAGINATION
-  // ----------------------------------------------------------
+  // =========================================================
 
   void _onScroll() {
     if (!_scrollController.hasClients) {
@@ -66,9 +68,9 @@ class _PatientTasksViewState extends State<_PatientTasksView> {
     }
   }
 
-  // ----------------------------------------------------------
+  // =========================================================
   // REFRESH
-  // ----------------------------------------------------------
+  // =========================================================
 
   Future<void> _onRefresh() async {
     context.read<PatientTasksBloc>().add(LoadTasks());
@@ -77,7 +79,7 @@ class _PatientTasksViewState extends State<_PatientTasksView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Patient Tasks')),
+      appBar: AppBar(title: const _SyncingTitle()),
 
       body: Column(
         children: [
@@ -175,6 +177,54 @@ class _PatientTasksViewState extends State<_PatientTasksView> {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ============================================================
+// SYNC TITLE
+// ============================================================
+
+class _SyncingTitle extends StatelessWidget {
+  const _SyncingTitle();
+
+  @override
+  Widget build(BuildContext context) {
+    final bloc = context.read<PatientTasksBloc>();
+
+    return StreamBuilder<int>(
+      stream: bloc.repository.watchPendingSyncCount(),
+
+      initialData: 0,
+
+      builder: (context, snapshot) {
+        final pending = snapshot.data ?? 0;
+
+        return Row(
+          children: [
+            const Text('Patient Tasks'),
+
+            if (pending > 0) ...[
+              const SizedBox(width: 12),
+
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+
+                decoration: BoxDecoration(
+                  color: Colors.orange,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+
+                child: Text(
+                  'Syncing ($pending)',
+
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                ),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }

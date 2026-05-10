@@ -28,4 +28,6 @@ abstract class PatientTasksRepository {
   // ----------------------------------------------------------
 
   Future<void> updateStatus({required String taskId, required TaskStatus next});
+
+  Stream<int> watchPendingSyncCount();
 }

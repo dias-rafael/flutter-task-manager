@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 
 import '../../../domain/domain.dart';
@@ -20,20 +21,24 @@ class PatientTasksLocalDataSourceImpl implements PatientTasksLocalDataSource {
   final _controller = StreamController<List<PatientTasks>>.broadcast();
 
   @override
-  Stream<List<PatientTasks>> watchTasks() async* {
-    // --------------------------------------------------------
-    // INITIAL EMISSION
-    // --------------------------------------------------------
+  Stream<List<PatientTasks>> watchTasks() {
+    return Stream.multi((controller) {
+      // ----------------------------------------------------
+      // INITIAL SNAPSHOT
+      // ----------------------------------------------------
 
-    yield _tasksBox.values.map((e) => e.toEntity()).toList();
+      controller.add(_tasksBox.values.map((e) => e.toEntity()).toList());
 
-    // --------------------------------------------------------
-    // REACTIVE UPDATES
-    // --------------------------------------------------------
+      // ----------------------------------------------------
+      // REACTIVE UPDATES
+      // ----------------------------------------------------
 
-    await for (final _ in _tasksBox.watch()) {
-      yield _tasksBox.values.map((e) => e.toEntity()).toList();
-    }
+      final subscription = _tasksBox.watch().listen((_) {
+        controller.add(_tasksBox.values.map((e) => e.toEntity()).toList());
+      });
+
+      controller.onCancel = subscription.cancel;
+    });
   }
 
   @override
@@ -65,14 +70,40 @@ class PatientTasksLocalDataSourceImpl implements PatientTasksLocalDataSource {
     await _queueBox.put(operation.id, operation);
   }
 
+  // @override
+  // Future<List<SyncOperationLocalModel>> getPendingOperations() async {
+  //   return _queueBox.values.toList();
+  // }
+
   @override
   Future<List<SyncOperationLocalModel>> getPendingOperations() async {
+    debugPrint('BOX KEYS: ${_queueBox.keys.toList()}');
+
+    debugPrint('BOX VALUES RAW: ${_queueBox.values}');
+
+    for (final key in _queueBox.keys) {
+      try {
+        final item = _queueBox.get(key);
+
+        debugPrint('ITEM [$key]: $item');
+      } catch (e) {
+        debugPrint('ERROR READING [$key]: $e');
+      }
+    }
+
     return _queueBox.values.toList();
   }
 
   @override
-  Future<void> removeOperation(String operationId) async {
-    await _queueBox.delete(operationId);
+  Future<void> removeOperation(String id) async {
+    debugPrint('REMOVE OPERATION: $id');
+
+    await _queueBox.delete(id);
+
+    debugPrint(
+      'QUEUE AFTER REMOVE: '
+      '${_queueBox.keys.toList()}',
+    );
   }
 
   void _emit() {
@@ -98,5 +129,34 @@ class PatientTasksLocalDataSourceImpl implements PatientTasksLocalDataSource {
     for (final task in tasks) {
       await _tasksBox.put(task.id, PatientTasksLocalModel.fromEntity(task));
     }
+  }
+
+  @override
+  Stream<int> watchPendingSyncCount() {
+    return Stream.multi((controller) {
+      controller.add(_queueBox.length);
+
+      final subscription = _queueBox.watch().listen((_) {
+        controller.add(_queueBox.length);
+      });
+
+      controller.onCancel = subscription.cancel;
+    });
+  }
+
+  @override
+  Future<void> upsertOperation(SyncOperationLocalModel operation) async {
+    debugPrint('''
+UPSERT OPERATION:
+id=${operation.id}
+retry=${operation.retryCount}
+''');
+
+    await _queueBox.put(operation.id, operation);
+
+    debugPrint(
+      'QUEUE AFTER UPSERT: '
+      '${_queueBox.keys.toList()}',
+    );
   }
 }

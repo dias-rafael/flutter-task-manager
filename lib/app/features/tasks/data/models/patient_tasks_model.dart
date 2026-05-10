@@ -21,10 +21,8 @@ class PatientTasksModel {
       status: json['status'] as String,
       priority: json['priority'] as String,
       patientReference: json['reference'] as String,
-      lastModified: DateTime.parse(json['last_update'] as String),
-      dueDate: json['due_date'] != null
-          ? DateTime.parse(json['due_date'] as String)
-          : null,
+      lastModified: _parseDate(json['last_modified']) ?? DateTime.now(),
+      dueDate: _parseDate(json['due_date']),
       assignee: json['assignee'] as String?,
     );
   }
@@ -51,5 +49,23 @@ class PatientTasksModel {
       dueDate: dueDate,
       assignee: assignee,
     );
+  }
+
+  static DateTime? _parseDate(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+
+    final string = value.toString().trim();
+
+    if (string.isEmpty) {
+      return null;
+    }
+
+    try {
+      return DateTime.parse(string);
+    } catch (_) {
+      return null;
+    }
   }
 }

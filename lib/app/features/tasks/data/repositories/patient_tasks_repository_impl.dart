@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:uuid/uuid.dart';
@@ -106,13 +107,18 @@ class PatientTasksRepositoryImpl implements PatientTasksRepository {
       retryCount: 0,
       createdAt: DateTime.now(),
       nextRetryAt: DateTime.now(),
-      payload: {
+      payloadJson: jsonEncode({
         'task_id': current.id,
         'version': optimistic.version,
         'status': optimistic.status.name,
-      },
+      }),
     );
 
     await local.enqueueOperation(operation);
+  }
+
+  @override
+  Stream<int> watchPendingSyncCount() {
+    return local.watchPendingSyncCount();
   }
 }

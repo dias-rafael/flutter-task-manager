@@ -21,4 +21,8 @@ abstract class PatientTasksLocalDataSource {
   Future<void> updateOperation(SyncOperationLocalModel operation);
 
   Future<void> replaceTasks(List<PatientTasks> tasks);
+
+  Stream<int> watchPendingSyncCount();
+
+  Future<void> upsertOperation(SyncOperationLocalModel operation);
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
@@ -17,16 +18,12 @@ class SyncManager {
   });
 
   final PatientTasksLocalDataSource local;
-
   final PatientTasksRemoteDataSource remote;
-
   final PatientTasksRepository repository;
-
   final RetryPolicy retryPolicy;
-
   StreamSubscription<PatientTasks>? _realtimeSubscription;
-
   bool _running = false;
+  bool _isProcessing = false;
 
   // ----------------------------------------------------------
   // START
@@ -82,6 +79,22 @@ class SyncManager {
 
   Future<void> _safeRefresh() async {
     try {
+      // ------------------------------------------------------
+      // IMPORTANT:
+      // do NOT refresh while pending sync exists
+      // ------------------------------------------------------
+
+      final pending = await local.getPendingOperations();
+
+      if (pending.isNotEmpty) {
+        debugPrint('''
+Skipping refresh because
+pending operations exist
+''');
+
+        return;
+      }
+
       await repository.refresh();
     } catch (e) {
       debugPrint('Refresh failed: $e');
@@ -93,39 +106,57 @@ class SyncManager {
   // ----------------------------------------------------------
 
   Future<void> processQueue() async {
-    final operations = await local.getPendingOperations();
+    // --------------------------------------------------------
+    // PREVENT CONCURRENT PROCESSING
+    // --------------------------------------------------------
 
-    // IMPORTANT:
-    // preserve ordering
+    if (_isProcessing) {
+      return;
+    }
 
-    operations.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    _isProcessing = true;
 
-    for (final operation in operations) {
-      // not ready yet
+    try {
+      final operations = await local.getPendingOperations();
 
-      if (DateTime.now().isBefore(operation.nextRetryAt)) {
-        continue;
+      debugPrint('''
+PROCESS QUEUE:
+${operations.map((e) => e.id).toList()}
+''');
+
+      // preserve ordering
+
+      operations.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+      for (final operation in operations) {
+        // not ready yet
+
+        if (DateTime.now().isBefore(operation.nextRetryAt)) {
+          continue;
+        }
+
+        try {
+          await remote.patchStatus(
+            taskId: operation.payload['task_id'] as String,
+
+            version: operation.payload['version'] as int,
+
+            status: operation.payload['status'] as String,
+          );
+
+          // success
+
+          await local.removeOperation(operation.id);
+        } on ConflictException {
+          await _resolveConflict(operation);
+        } catch (e) {
+          debugPrint('Sync operation failed: $e');
+
+          await _scheduleRetry(operation);
+        }
       }
-
-      try {
-        await remote.patchStatus(
-          taskId: operation.payload['task_id'] as String,
-
-          version: operation.payload['version'] as int,
-
-          status: operation.payload['status'] as String,
-        );
-
-        // success
-
-        await local.removeOperation(operation.id);
-      } on ConflictException {
-        await _resolveConflict(operation);
-      } catch (e) {
-        debugPrint('Sync operation failed: $e');
-
-        await _scheduleRetry(operation);
-      }
+    } finally {
+      _isProcessing = false;
     }
   }
 
@@ -134,13 +165,35 @@ class SyncManager {
   // ----------------------------------------------------------
 
   Future<void> _scheduleRetry(SyncOperationLocalModel operation) async {
-    operation.retryCount++;
+    final retries = operation.retryCount + 1;
 
-    final delay = retryPolicy.nextDelay(operation.retryCount);
+    // exponential backoff
 
-    operation.nextRetryAt = DateTime.now().add(delay);
+    final delaySeconds = 1 << retries;
 
-    await local.updateOperation(operation);
+    // jitter
+
+    final jitter = Random().nextInt(3);
+
+    final nextRetryAt = DateTime.now().add(
+      Duration(seconds: delaySeconds + jitter),
+    );
+
+    final updated = operation.copyWith(
+      retryCount: retries,
+      nextRetryAt: nextRetryAt,
+    );
+
+    // IMPORTANT:
+    // overwrite SAME operation
+
+    await local.upsertOperation(updated);
+
+    debugPrint('''
+Retry scheduled:
+${updated.id}
+retryCount=${updated.retryCount}
+''');
   }
 
   // ----------------------------------------------------------

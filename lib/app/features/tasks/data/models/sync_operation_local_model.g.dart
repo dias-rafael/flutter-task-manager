@@ -9,7 +9,7 @@ part of 'sync_operation_local_model.dart';
 class SyncOperationLocalModelAdapter
     extends TypeAdapter<SyncOperationLocalModel> {
   @override
-  final int typeId = 1;
+  final int typeId = 99;
 
   @override
   SyncOperationLocalModel read(BinaryReader reader) {
@@ -21,7 +21,7 @@ class SyncOperationLocalModelAdapter
       id: fields[0] as String,
       taskId: fields[1] as String,
       type: fields[2] as String,
-      payload: (fields[3] as Map).cast<String, dynamic>(),
+      payloadJson: fields[3] as String,
       retryCount: fields[4] as int,
       createdAt: fields[5] as DateTime,
       nextRetryAt: fields[6] as DateTime,
@@ -39,7 +39,7 @@ class SyncOperationLocalModelAdapter
       ..writeByte(2)
       ..write(obj.type)
       ..writeByte(3)
-      ..write(obj.payload)
+      ..write(obj.payloadJson)
       ..writeByte(4)
       ..write(obj.retryCount)
       ..writeByte(5)

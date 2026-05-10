@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../app/features/tasks/data/data.dart';
@@ -32,6 +33,10 @@ Future<void> setupDependencies() async {
   // Hive
   // -------------------------------------------------------------------------
   await Hive.initFlutter();
+  // Clear existing boxes to prevent issues with legacy/corrupted data only for development.
+  // In production, consider implementing a proper migration strategy.
+  // await Hive.deleteBoxFromDisk('sync_queue');
+  // await Hive.deleteBoxFromDisk('patient_tasks');
 
   Hive
     ..registerAdapter(PatientTasksLocalModelAdapter())
@@ -41,8 +46,10 @@ Future<void> setupDependencies() async {
 
   final queueBox = await Hive.openBox<SyncOperationLocalModel>('sync_queue');
 
-  // Clear sync_queue box to remove legacy/corrupt data
-  await queueBox.clear();
+  debugPrint('QUEUE SIZE ON START: ${queueBox.length}');
+
+  // Clear sync_queue box to remove legacy/corrupt data only for development.
+  // await queueBox.clear();
 
   getIt
     ..registerLazySingleton(() => tasksBox)
