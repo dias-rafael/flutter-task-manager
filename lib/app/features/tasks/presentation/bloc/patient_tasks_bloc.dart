@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:stream_transform/stream_transform.dart';
 
 import '../../domain/domain.dart';
+import '../utils/task_update_error_message.dart';
 
 part 'patient_tasks_event.dart';
 part 'patient_tasks_state.dart';
@@ -16,7 +17,9 @@ EventTransformer<T> debounceRestartable<T>(Duration duration) {
 }
 
 class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
-  PatientTasksBloc({required this.repository}) : super(PatientTasksInitial()) {
+  PatientTasksBloc({required PatientTasksRepository repository})
+      : _repository = repository,
+        super(PatientTasksInitial()) {
     // --------------------------------------------------------
     // LOAD
     // --------------------------------------------------------
@@ -56,24 +59,36 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
     on<FilterChanged>(_onFilterChanged);
   }
 
-  final PatientTasksRepository repository;
+  final PatientTasksRepository _repository;
+
   StreamSubscription<List<PatientTasks>>? _tasksSubscription;
   String _currentQuery = '';
   List<PatientTasks> _allTasks = [];
   TaskFilter _currentFilter = TaskFilter.all;
+
+  Stream<int> watchPendingSyncCount() =>
+      _repository.watchPendingSyncCount();
 
   // =========================================================
   // LOAD
   // =========================================================
 
   Future<void> _onLoad(LoadTasks event, Emitter<PatientTasksState> emit) async {
+    // --------------------------------------------------------
+    // LOADING (cold start / error retry; skip if already loaded)
+    // --------------------------------------------------------
+
+    if (state is! PatientTasksLoaded) {
+      emit(PatientTasksLoading());
+    }
+
     await _tasksSubscription?.cancel();
 
     // --------------------------------------------------------
     // LOCAL SOURCE OF TRUTH
     // --------------------------------------------------------
 
-    _tasksSubscription = repository.watchTasks().listen((tasks) {
+    _tasksSubscription = _repository.watchTasks().listen((tasks) {
       add(TasksUpdated(tasks));
     });
 
@@ -81,7 +96,7 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
     // BACKGROUND REMOTE SYNC
     // --------------------------------------------------------
 
-    unawaited(repository.searchTasks(query: _currentQuery, page: 0));
+    unawaited(_repository.searchTasks(query: _currentQuery, page: 0));
   }
 
   // =========================================================
@@ -152,7 +167,7 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
 
       final nextPage = current.page + 1;
 
-      await repository.searchTasks(query: _currentQuery, page: nextPage);
+      await _repository.searchTasks(query: _currentQuery, page: nextPage);
 
       emit(current.copyWith(page: nextPage, isLoadingMore: false));
     } catch (_) {
@@ -169,13 +184,18 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
     Emitter<PatientTasksState> emit,
   ) async {
     try {
-      await repository.updateStatus(taskId: event.taskId, next: event.status);
+      await _repository.updateStatus(
+        taskId: event.taskId,
+        next: event.status,
+      );
     } catch (e) {
       // ------------------------------------------------------
       // TRANSIENT MESSAGE
       // ------------------------------------------------------
 
-      emit(PatientTasksUiMessage(alertMessage: e.toString()));
+      emit(
+        PatientTasksUiMessage(alertMessage: taskUpdateErrorMessage(e)),
+      );
 
       // ------------------------------------------------------
       // RESTORE SCREEN STATE

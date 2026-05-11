@@ -7,14 +7,54 @@ import '../bloc/patient_tasks_bloc.dart';
 import '../widgets/patient_tasks_card.dart';
 
 class PatientTasksPage extends StatelessWidget {
-  const PatientTasksPage({super.key});
+  const PatientTasksPage({
+    super.key,
+    this.blocForTesting,
+  });
+
+  /// Optional bloc for widget tests (skips [injector]).
+  final PatientTasksBloc? blocForTesting;
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<PatientTasksBloc>(
-      create: (_) => injector.get<PatientTasksBloc>()..add(LoadTasks()),
+    final bloc = blocForTesting ?? injector.get<PatientTasksBloc>();
 
+    return _PatientTasksBlocHost(
+      bloc: bloc,
       child: const _PatientTasksView(),
+    );
+  }
+}
+
+/// Provides an existing bloc without closing it when the route disposes
+/// (required for the app-wide GetIt singleton).
+class _PatientTasksBlocHost extends StatefulWidget {
+  const _PatientTasksBlocHost({
+    required this.bloc,
+    required this.child,
+  });
+
+  final PatientTasksBloc bloc;
+
+  final Widget child;
+
+  @override
+  State<_PatientTasksBlocHost> createState() => _PatientTasksBlocHostState();
+}
+
+class _PatientTasksBlocHostState extends State<_PatientTasksBlocHost> {
+  @override
+  void initState() {
+    super.initState();
+
+    widget.bloc.add(LoadTasks());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider<PatientTasksBloc>.value(
+      value: widget.bloc,
+      child: widget.child,
     );
   }
 }
@@ -236,7 +276,7 @@ class _SyncingTitle extends StatelessWidget {
     final bloc = context.read<PatientTasksBloc>();
 
     return StreamBuilder<int>(
-      stream: bloc.repository.watchPendingSyncCount(),
+      stream: bloc.watchPendingSyncCount(),
 
       initialData: 0,
 

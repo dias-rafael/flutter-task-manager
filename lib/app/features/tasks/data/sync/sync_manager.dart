@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
@@ -101,7 +100,11 @@ pending operations exist
 
       await repository.refresh();
     } catch (e) {
-      debugPrint('Refresh failed: $e');
+      if (e is NetworkException) {
+        debugPrint('Refresh failed: ${e.message}');
+      } else {
+        debugPrint('Refresh failed');
+      }
     }
   }
 
@@ -200,39 +203,39 @@ and was reverted.
     // MAX RETRIES
     // ------------------------------------------------------
 
-    // const maxRetries = 3;
+    if (retries > retryPolicy.maxRetries) {
+      debugPrint(
+        'Operation permanently failed after max retries: ${operation.id}',
+      );
 
-    // if (retries >= maxRetries) {
-    //   debugPrint('''
-    // Operation permanently failed:
-    // ${operation.id}
-    // ''');
+      await local.removeOperation(operation.id);
 
-    //   await local.removeOperation(operation.id);
+      try {
+        final remoteTask = await remote.fetchTask(operation.taskId);
 
-    //   onRollbackMessage?.call('''
-    // We couldn't sync one of your changes.
-    // The update was reverted.
-    // ''');
+        await local.upsertTask(remoteTask);
 
-    //   return;
-    // }
+        onRollbackMessage?.call('''
+We couldn't sync your change after several tries.
+It was reverted to match the server.
+''');
+      } catch (_) {
+        onRollbackMessage?.call('''
+We couldn't sync your change after several tries.
+Please refresh when you are back online.
+''');
+      }
+
+      return;
+    }
 
     // ------------------------------------------------------
-    // EXPONENTIAL BACKOFF
+    // EXPONENTIAL BACKOFF + JITTER (RetryPolicy)
     // ------------------------------------------------------
 
-    final delaySeconds = 1 << retries;
+    final delay = retryPolicy.nextDelay(retries);
 
-    // ------------------------------------------------------
-    // JITTER
-    // ------------------------------------------------------
-
-    final jitter = Random().nextInt(3);
-
-    final nextRetryAt = DateTime.now().add(
-      Duration(seconds: delaySeconds + jitter),
-    );
+    final nextRetryAt = DateTime.now().add(delay);
 
     final updated = operation.copyWith(
       retryCount: retries,
