@@ -19,17 +19,12 @@ with injected random
 ''',
       () {
         final retryPolicy = RetryPolicy(random: FakeRandom());
-
         final delay1 = retryPolicy.nextDelay(1);
-
         final delay2 = retryPolicy.nextDelay(2);
-
         final delay3 = retryPolicy.nextDelay(3);
 
         expect(delay1, const Duration(seconds: 2, milliseconds: 500));
-
         expect(delay2, const Duration(seconds: 4, milliseconds: 500));
-
         expect(delay3, const Duration(seconds: 8, milliseconds: 500));
       },
     );

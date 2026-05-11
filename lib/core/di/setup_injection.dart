@@ -32,6 +32,7 @@ Future<void> setupDependencies() async {
         },
       ),
     );
+
   // -------------------------------------------------------------------------
   // Hive
   // -------------------------------------------------------------------------
@@ -46,7 +47,6 @@ Future<void> setupDependencies() async {
     ..registerAdapter(SyncOperationLocalModelAdapter());
 
   final tasksBox = await Hive.openBox<PatientTasksLocalModel>('patient_tasks');
-
   final queueBox = await Hive.openBox<SyncOperationLocalModel>('sync_queue');
 
   debugPrint('QUEUE SIZE ON START: ${queueBox.length}');
