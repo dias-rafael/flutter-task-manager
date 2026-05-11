@@ -1,0 +1,235 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+
+import '../../../../../core/network/network_types.dart';
+import '../../domain/domain.dart';
+import '../data_sources/data_sources.dart';
+import '../models/sync_operation_local_model.dart';
+import 'retry_policy.dart';
+
+class SyncManager {
+  SyncManager({
+    required this.local,
+    required this.remote,
+    required this.repository,
+    required this.retryPolicy,
+    this.onRollbackMessage,
+  });
+
+  final PatientTasksLocalDataSource local;
+  final PatientTasksRemoteDataSource remote;
+  final PatientTasksRepository repository;
+  final RetryPolicy retryPolicy;
+  StreamSubscription<PatientTasks>? _realtimeSubscription;
+  bool _running = false;
+  bool _isProcessing = false;
+  final void Function(String)? onRollbackMessage;
+
+  Future<void> start() async {
+    if (_running) {
+      return;
+    }
+    _running = true;
+
+    await _safeRefresh();
+
+    _subscribeRealtime();
+    unawaited(_loop());
+  }
+
+  Future<void> stop() async {
+    _running = false;
+
+    await _realtimeSubscription?.cancel();
+  }
+
+  Future<void> _loop() async {
+    while (_running) {
+      try {
+        await processQueue();
+      } catch (e) {
+        debugPrint('Queue processing error: $e');
+      }
+
+      await Future<void>.delayed(const Duration(seconds: 5));
+    }
+  }
+
+  Future<void> _safeRefresh() async {
+    try {
+      final pending = await local.getPendingOperations();
+
+      if (pending.isNotEmpty) {
+        debugPrint('''
+Skipping refresh because
+pending operations exist
+''');
+
+        return;
+      }
+
+      await repository.refresh();
+    } catch (e) {
+      if (e is NetworkException) {
+        debugPrint('Refresh failed: ${e.message}');
+      } else {
+        debugPrint('Refresh failed');
+      }
+    }
+  }
+
+  Future<void> processQueue() async {
+    if (_isProcessing) {
+      return;
+    }
+
+    _isProcessing = true;
+
+    try {
+      final operations = await local.getPendingOperations();
+
+      debugPrint('''
+PROCESS QUEUE:
+${operations.map((e) => e.id).toList()}
+''');
+
+      operations.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+      for (final operation in operations) {
+        if (DateTime.now().isBefore(operation.nextRetryAt)) {
+          continue;
+        }
+
+        try {
+          await remote.patchStatus(
+            taskId: operation.payload['task_id'] as String,
+            version: operation.payload['version'] as int,
+            status: operation.payload['status'] as String,
+          );
+
+          await local.removeOperation(operation.id);
+        } on ConflictException {
+          await _resolveConflict(operation);
+        } on ValidationException catch (e) {
+          debugPrint('ROLLBACK: $e');
+
+          await local.removeOperation(operation.id);
+
+          try {
+            final remoteTask = await remote.fetchTask(operation.taskId);
+
+            await local.upsertTask(remoteTask);
+
+            debugPrint('ROLLBACK APPLY SERVER TASK');
+            onRollbackMessage?.call('''
+This change could not be synced
+and was reverted.
+''');
+          } catch (_) {}
+        } catch (e) {
+          debugPrint('Sync operation failed: $e');
+
+          await _scheduleRetry(operation);
+        }
+      }
+    } finally {
+      _isProcessing = false;
+    }
+  }
+
+  Future<void> _scheduleRetry(SyncOperationLocalModel operation) async {
+    final retries = operation.retryCount + 1;
+
+    if (retries > retryPolicy.maxRetries) {
+      debugPrint(
+        'Operation permanently failed after max retries: ${operation.id}',
+      );
+
+      await local.removeOperation(operation.id);
+
+      try {
+        final remoteTask = await remote.fetchTask(operation.taskId);
+
+        await local.upsertTask(remoteTask);
+
+        onRollbackMessage?.call('''
+We couldn't sync your change after several tries.
+It was reverted to match the server.
+''');
+      } catch (_) {
+        onRollbackMessage?.call('''
+We couldn't sync your change after several tries.
+Please refresh when you are back online.
+''');
+      }
+
+      return;
+    }
+
+    final delay = retryPolicy.nextDelay(retries);
+    final nextRetryAt = DateTime.now().add(delay);
+    final updated = operation.copyWith(
+      retryCount: retries,
+      nextRetryAt: nextRetryAt,
+    );
+
+    await local.upsertOperation(updated);
+
+    debugPrint('''
+Retry scheduled:
+${updated.id}
+retryCount=${updated.retryCount}
+''');
+  }
+
+  Future<void> _resolveConflict(SyncOperationLocalModel operation) async {
+    debugPrint(
+      'Conflict detected for '
+      '${operation.taskId}',
+    );
+
+    // ------------------------------------------------------
+    // SERVER-WINS STRATEGY
+    // ------------------------------------------------------
+
+    final serverTask = await remote.fetchTask(operation.taskId);
+
+    // rollback optimistic state
+
+    await local.upsertTask(serverTask);
+
+    // remove failed mutation
+
+    await local.removeOperation(operation.id);
+  }
+
+  void _subscribeRealtime() {
+    _realtimeSubscription?.cancel();
+
+    _realtimeSubscription = remote.watchTaskUpdates().listen(
+      (serverTask) async {
+        try {
+          final hasPending = await local.hasPendingOperation(serverTask.id);
+
+          if (hasPending) {
+            debugPrint('''
+Skipping realtime update
+because optimistic mutation exists
+''');
+
+            return;
+          }
+
+          await local.upsertTask(serverTask);
+        } catch (e) {
+          debugPrint('Realtime merge error: $e');
+        }
+      },
+
+      onError: (Object e) {
+        debugPrint('Realtime stream error: $e');
+      },
+    );
+  }
+}

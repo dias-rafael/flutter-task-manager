@@ -1,0 +1,99 @@
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+
+import '../../app/features/tasks/data/data.dart';
+import '../../app/features/tasks/data/data_sources/mock_api/mock_patient_task_api.dart';
+import '../../app/features/tasks/data/sync/retry_policy.dart';
+import '../../app/features/tasks/data/sync/sync_manager.dart';
+import '../../app/features/tasks/domain/domain.dart';
+import '../../app/features/tasks/presentation/bloc/patient_tasks_bloc.dart';
+import '../network/clients/dio_client.dart';
+import '../network/network.dart';
+import 'clients/getit_client.dart';
+import 'dependency_injection.dart';
+
+Future<void> setupDependencies() async {
+  final getIt = (injector as GetItClient).instance;
+
+  // -------------------------------------------------------------------------
+  // Sync Manager
+  // -------------------------------------------------------------------------
+  getIt
+    ..registerLazySingleton(RetryPolicy.new)
+    ..registerLazySingleton(
+      () => SyncManager(
+        local: getIt(),
+        remote: getIt(),
+        repository: getIt(),
+        retryPolicy: getIt(),
+        onRollbackMessage: (message) {
+          injector.get<PatientTasksBloc>().notifyRollbackMessage(message);
+        },
+      ),
+    );
+
+  // -------------------------------------------------------------------------
+  // Hive
+  // -------------------------------------------------------------------------
+  await Hive.initFlutter();
+  // Clear existing boxes to prevent issues with legacy/corrupted data only for development.
+  // In production, consider implementing a proper migration strategy.
+  // await Hive.deleteBoxFromDisk('sync_queue');
+  // await Hive.deleteBoxFromDisk('patient_tasks');
+
+  final patientTasksAdapter = PatientTasksLocalModelAdapter();
+
+  if (!Hive.isAdapterRegistered(patientTasksAdapter.typeId)) {
+    Hive.registerAdapter(patientTasksAdapter);
+  }
+
+  final syncAdapter = SyncOperationLocalModelAdapter();
+
+  if (!Hive.isAdapterRegistered(syncAdapter.typeId)) {
+    Hive.registerAdapter(syncAdapter);
+  }
+
+  final tasksBox = await Hive.openBox<PatientTasksLocalModel>('patient_tasks');
+  final queueBox = await Hive.openBox<SyncOperationLocalModel>('sync_queue');
+
+  debugPrint('QUEUE SIZE ON START: ${queueBox.length}');
+
+  // Clear sync_queue box to remove legacy/corrupt data only for development.
+  // await queueBox.clear();
+
+  getIt
+    ..registerLazySingleton(() => tasksBox)
+    ..registerLazySingleton(() => queueBox)
+    // -------------------------------------------------------------------------
+    // Network
+    // -------------------------------------------------------------------------
+    ..registerLazySingleton<Dio>(Dio.new)
+    ..registerLazySingleton<Network>(() => DioClient(getIt<Dio>()))
+    // -------------------------------------------------------------------------
+    // Data Sources
+    // -------------------------------------------------------------------------
+    ..registerLazySingleton(MockPatientTaskApi.new)
+    ..registerLazySingleton<PatientTasksRemoteDataSource>(
+      () => PatientTasksRemoteDataSourceImpl(getIt(), getIt()),
+    )
+    ..registerLazySingleton<PatientTasksLocalDataSource>(
+      () =>
+          PatientTasksLocalDataSourceImpl(tasksBox: getIt(), queueBox: getIt()),
+    )
+    // -------------------------------------------------------------------------
+    // Repositories
+    // -------------------------------------------------------------------------
+    ..registerLazySingleton<PatientTasksRepository>(
+      () => PatientTasksRepositoryImpl(
+        local: getIt<PatientTasksLocalDataSource>(),
+        remote: getIt<PatientTasksRemoteDataSource>(),
+      ),
+    )
+    // -------------------------------------------------------------------------
+    // Blocs
+    // -------------------------------------------------------------------------
+    ..registerSingleton<PatientTasksBloc>(
+      PatientTasksBloc(repository: getIt<PatientTasksRepository>()),
+    );
+}

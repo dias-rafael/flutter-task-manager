@@ -1,0 +1,344 @@
+{
+  "uuid": "cafbb443-0a7b-451d-b4d8-b4dcf35ac52d",
+  "lastMigration": 32,
+  "name": "Task manager",
+  "endpointPrefix": "",
+  "latency": 0,
+  "port": 3001,
+  "hostname": "",
+  "folders": [],
+  "routes": [
+    {
+      "uuid": "9f064398-71df-41f3-aada-628b6106ad1d",
+      "type": "http",
+      "documentation": "",
+      "method": "get",
+      "endpoint": "tasks",
+      "responses": [
+        {
+          "uuid": "e1599e50-9dcc-4007-9c69-6b94ad1422a1",
+          "body": "{\n  \"patient_tasks\": [\n    {\n      \"id\": \"1\",\n      \"version\": 1,\n      \"title\": \"Patient Test 1\",\n      \"status\": \"inProgress\",\n      \"priority\": \"Routine\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/1\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"{{dateTimeShift}}\"\n    },\n    {\n      \"id\": \"2\",\n      \"version\": 1,\n      \"title\": \"Patient Test 2\",\n      \"status\": \"requested\",\n      \"priority\": \"Urgent\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/2\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"{{dateTimeShift}}\"\n    },\n    {\n      \"id\": \"3\",\n      \"version\": 1,\n      \"title\": \"Patient Test 3\",\n      \"status\": \"cancelled\",\n      \"priority\": \"Stat\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/3\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"{{dateTimeShift}}\"\n    },\n    {\n      \"id\": \"4\",\n      \"version\": 1,\n      \"title\": \"Patient Test 4\",\n      \"status\": \"onHold\",\n      \"priority\": \"ASAP\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/4\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"{{dateTimeShift}}\"\n    }\n  ]\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        },
+        {
+          "uuid": "fde02081-4e51-4718-9f44-f43f71d464ce",
+          "body": "{\n  \"patient_tasks\": [\n    {\n      \"id\": \"2\",\n      \"version\": 1,\n      \"title\": \"Patient Test 2\",\n      \"status\": \"requested\",\n      \"priority\": \"routine\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/2\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"{{dateTimeShift}}\"\n    }\n  ]\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "query",
+              "modifier": "query",
+              "value": "2",
+              "invert": false,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        },
+        {
+          "uuid": "0d97632c-388a-44fe-b1eb-352fea3ad02d",
+          "body": "{\n  \"patient_tasks\": [\n    {\n      \"id\": \"1\",\n      \"version\": 1,\n      \"title\": \"Patient Test 1\",\n      \"status\": \"inProgress\",\n      \"priority\": \"routine\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/1\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"{{dateTimeShift}}\"\n    }\n  ]\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "query",
+              "modifier": "query",
+              "value": "1",
+              "invert": false,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        },
+        {
+          "uuid": "3f6f9eb3-906e-4636-9774-0042da21ceff",
+          "body": "{\n  \"patient_tasks\": []\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "query",
+              "modifier": "query",
+              "value": "1",
+              "invert": true,
+              "operator": "equals"
+            },
+            {
+              "target": "query",
+              "modifier": "query",
+              "value": "2",
+              "invert": true,
+              "operator": "equals"
+            },
+            {
+              "target": "query",
+              "modifier": "query",
+              "value": "3",
+              "invert": true,
+              "operator": "equals"
+            },
+            {
+              "target": "query",
+              "modifier": "query",
+              "value": "4",
+              "invert": true,
+              "operator": "equals"
+            },
+            {
+              "target": "query",
+              "modifier": "query",
+              "value": "\"\"",
+              "invert": false,
+              "operator": "empty_array"
+            }
+          ],
+          "rulesOperator": "AND",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        },
+        {
+          "uuid": "0eec3f64-3f0a-45bf-973a-bb5159d5790b",
+          "body": "{\n  \"patient_tasks\": [\n    {\n      \"id\": \"3\",\n      \"version\": 1,\n      \"title\": \"Patient Test 3\",\n      \"status\": \"cancelled\",\n      \"priority\": \"routine\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/3\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"{{dateTimeShift}}\"\n    }\n  ]\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "query",
+              "modifier": "query",
+              "value": "3",
+              "invert": false,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        },
+        {
+          "uuid": "728f0232-9ac9-49a6-a063-af3f60d8fb7b",
+          "body": "{\n  \"patient_tasks\": [\n    {\n      \"id\": \"4\",\n      \"version\": 1,\n      \"title\": \"Patient Test 4\",\n      \"status\": \"onHold\",\n      \"priority\": \"routine\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/4\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"{{dateTimeShift}}\"\n    }\n  ]\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "query",
+              "modifier": "query",
+              "value": "4",
+              "invert": false,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null
+    },
+    {
+      "uuid": "af241bb2-515a-42cd-b6d1-96d636017fce",
+      "type": "http",
+      "documentation": "",
+      "method": "patch",
+      "endpoint": "tasks/:id",
+      "responses": [
+        {
+          "uuid": "464e03c7-ca6f-4f85-93a2-8fdf066f6131",
+          "body": "{\n  \"id\": \"{{urlParam 'id'}}\",\n  \"version\": 2,\n  \"title\": \"Patient Test {{urlParam 'id'}}\",\n  \"status\": \"{{body 'status' 'requested'}}\",\n  \"priority\": \"{{body 'priority' 'routine'}}\",\n  \"due_date\": \"{{body 'due_date'}}\",\n  \"reference\": \"Patient Test/{{urlParam 'id'}}\",\n  \"assignee\": \"{{body 'assignee' 'Practitioner/X'}}\",\n  \"last_update\": \"{{dateTimeShift}}\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        },
+        {
+          "uuid": "44e80176-76c5-4d2e-a0e0-9e9a9c8e96aa",
+          "body": "{\n  \"message\": \"Version conflict\"\n}",
+          "latency": 0,
+          "statusCode": 409,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "header",
+              "modifier": "x-force-conflict",
+              "value": "true",
+              "invert": false,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null
+    },
+    {
+      "uuid": "2354c31b-1707-49ad-9b14-2ff4e77c7637",
+      "type": "http",
+      "documentation": "",
+      "method": "get",
+      "endpoint": "tasks/:id",
+      "responses": [
+        {
+          "uuid": "8782313a-7339-46b0-b0b6-48dc97766c22",
+          "body": "{\n  \"id\": \"1\",\n  \"version\": 1,\n  \"title\": \"Patient Test 1\",\n  \"status\": \"inProgress\",\n  \"priority\": \"routine\",\n  \"due_date\": null,\n  \"reference\": \"Patient Test/1\",\n  \"assignee\": \"Practitioner/X\",\n  \"last_update\": \"{{dateTimeShift}}\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null
+    }
+  ],
+  "rootChildren": [
+    {
+      "type": "route",
+      "uuid": "9f064398-71df-41f3-aada-628b6106ad1d"
+    },
+    {
+      "type": "route",
+      "uuid": "af241bb2-515a-42cd-b6d1-96d636017fce"
+    },
+    {
+      "type": "route",
+      "uuid": "2354c31b-1707-49ad-9b14-2ff4e77c7637"
+    }
+  ],
+  "proxyMode": false,
+  "proxyHost": "",
+  "proxyRemovePrefix": false,
+  "tlsOptions": {
+    "enabled": false,
+    "type": "CERT",
+    "pfxPath": "",
+    "certPath": "",
+    "keyPath": "",
+    "caPath": "",
+    "passphrase": ""
+  },
+  "cors": true,
+  "headers": [
+    {
+      "key": "Content-Type",
+      "value": "application/json"
+    }
+  ],
+  "proxyReqHeaders": [
+    {
+      "key": "",
+      "value": ""
+    }
+  ],
+  "proxyResHeaders": [
+    {
+      "key": "",
+      "value": ""
+    }
+  ],
+  "data": [
+    {
+      "uuid": "a2192937-7839-4497-9955-1d22cd26a6f2",
+      "id": "77bk",
+      "name": "Patient Tasks",
+      "documentation": "",
+      "value": "{\n  \"patient_tasks\": [\n    {\n      \"id\": \"1\",\n      \"version\": 1,\n      \"title\": \"Patient Test 1\",\n      \"status\": \"requested\",\n      \"priority\": \"routine\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/1\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"{{dateTimeShift}}\"\n    },\n    {\n      \"id\": \"2\",\n      \"version\": 1,\n      \"title\": \"Patient Test 2\",\n      \"status\": \"requested\",\n      \"priority\": \"routine\",\n      \"due_date\": null,\n      \"reference\": \"Patient Test/2\",\n      \"assignee\": \"Practitioner/X\",\n      \"last_update\": \"{{dateTimeShift}}\"\n    }\n  ]\n}"
+    }
+  ],
+  "callbacks": []
+}
