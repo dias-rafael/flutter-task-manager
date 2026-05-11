@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
@@ -27,43 +26,23 @@ class SyncManager {
   bool _isProcessing = false;
   final void Function(String)? onRollbackMessage;
 
-  // ----------------------------------------------------------
-  // START
-  // ----------------------------------------------------------
-
   Future<void> start() async {
     if (_running) {
       return;
     }
-
     _running = true;
-
-    // initial pull sync
 
     await _safeRefresh();
 
-    // subscribe realtime updates
-
     _subscribeRealtime();
-
-    // start queue loop
-
     unawaited(_loop());
   }
-
-  // ----------------------------------------------------------
-  // STOP
-  // ----------------------------------------------------------
 
   Future<void> stop() async {
     _running = false;
 
     await _realtimeSubscription?.cancel();
   }
-
-  // ----------------------------------------------------------
-  // LOOP
-  // ----------------------------------------------------------
 
   Future<void> _loop() async {
     while (_running) {
@@ -77,17 +56,8 @@ class SyncManager {
     }
   }
 
-  // ----------------------------------------------------------
-  // REFRESH
-  // ----------------------------------------------------------
-
   Future<void> _safeRefresh() async {
     try {
-      // ------------------------------------------------------
-      // IMPORTANT:
-      // do NOT refresh while pending sync exists
-      // ------------------------------------------------------
-
       final pending = await local.getPendingOperations();
 
       if (pending.isNotEmpty) {
@@ -101,19 +71,15 @@ pending operations exist
 
       await repository.refresh();
     } catch (e) {
-      debugPrint('Refresh failed: $e');
+      if (e is NetworkException) {
+        debugPrint('Refresh failed: ${e.message}');
+      } else {
+        debugPrint('Refresh failed');
+      }
     }
   }
 
-  // ----------------------------------------------------------
-  // PROCESS QUEUE
-  // ----------------------------------------------------------
-
   Future<void> processQueue() async {
-    // --------------------------------------------------------
-    // PREVENT CONCURRENT PROCESSING
-    // --------------------------------------------------------
-
     if (_isProcessing) {
       return;
     }
@@ -128,13 +94,9 @@ PROCESS QUEUE:
 ${operations.map((e) => e.id).toList()}
 ''');
 
-      // preserve ordering
-
       operations.sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
       for (final operation in operations) {
-        // not ready yet
-
         if (DateTime.now().isBefore(operation.nextRetryAt)) {
           continue;
         }
@@ -142,13 +104,9 @@ ${operations.map((e) => e.id).toList()}
         try {
           await remote.patchStatus(
             taskId: operation.payload['task_id'] as String,
-
             version: operation.payload['version'] as int,
-
             status: operation.payload['status'] as String,
           );
-
-          // success
 
           await local.removeOperation(operation.id);
         } on ConflictException {
@@ -156,15 +114,7 @@ ${operations.map((e) => e.id).toList()}
         } on ValidationException catch (e) {
           debugPrint('ROLLBACK: $e');
 
-          // ------------------------------------------------------
-          // remove invalid operation
-          // ------------------------------------------------------
-
           await local.removeOperation(operation.id);
-
-          // ------------------------------------------------------
-          // fetch latest server state
-          // ------------------------------------------------------
 
           try {
             final remoteTask = await remote.fetchTask(operation.taskId);
@@ -172,7 +122,6 @@ ${operations.map((e) => e.id).toList()}
             await local.upsertTask(remoteTask);
 
             debugPrint('ROLLBACK APPLY SERVER TASK');
-
             onRollbackMessage?.call('''
 This change could not be synced
 and was reverted.
@@ -189,58 +138,41 @@ and was reverted.
     }
   }
 
-  // ----------------------------------------------------------
-  // RETRY
-  // ----------------------------------------------------------
-
   Future<void> _scheduleRetry(SyncOperationLocalModel operation) async {
     final retries = operation.retryCount + 1;
 
-    // ------------------------------------------------------
-    // MAX RETRIES
-    // ------------------------------------------------------
+    if (retries > retryPolicy.maxRetries) {
+      debugPrint(
+        'Operation permanently failed after max retries: ${operation.id}',
+      );
 
-    // const maxRetries = 3;
+      await local.removeOperation(operation.id);
 
-    // if (retries >= maxRetries) {
-    //   debugPrint('''
-    // Operation permanently failed:
-    // ${operation.id}
-    // ''');
+      try {
+        final remoteTask = await remote.fetchTask(operation.taskId);
 
-    //   await local.removeOperation(operation.id);
+        await local.upsertTask(remoteTask);
 
-    //   onRollbackMessage?.call('''
-    // We couldn't sync one of your changes.
-    // The update was reverted.
-    // ''');
+        onRollbackMessage?.call('''
+We couldn't sync your change after several tries.
+It was reverted to match the server.
+''');
+      } catch (_) {
+        onRollbackMessage?.call('''
+We couldn't sync your change after several tries.
+Please refresh when you are back online.
+''');
+      }
 
-    //   return;
-    // }
+      return;
+    }
 
-    // ------------------------------------------------------
-    // EXPONENTIAL BACKOFF
-    // ------------------------------------------------------
-
-    final delaySeconds = 1 << retries;
-
-    // ------------------------------------------------------
-    // JITTER
-    // ------------------------------------------------------
-
-    final jitter = Random().nextInt(3);
-
-    final nextRetryAt = DateTime.now().add(
-      Duration(seconds: delaySeconds + jitter),
-    );
-
+    final delay = retryPolicy.nextDelay(retries);
+    final nextRetryAt = DateTime.now().add(delay);
     final updated = operation.copyWith(
       retryCount: retries,
       nextRetryAt: nextRetryAt,
     );
-
-    // IMPORTANT:
-    // overwrite SAME operation
 
     await local.upsertOperation(updated);
 
@@ -250,10 +182,6 @@ ${updated.id}
 retryCount=${updated.retryCount}
 ''');
   }
-
-  // ----------------------------------------------------------
-  // CONFLICT RESOLUTION
-  // ----------------------------------------------------------
 
   Future<void> _resolveConflict(SyncOperationLocalModel operation) async {
     debugPrint(
@@ -276,20 +204,12 @@ retryCount=${updated.retryCount}
     await local.removeOperation(operation.id);
   }
 
-  // ----------------------------------------------------------
-  // REALTIME
-  // ----------------------------------------------------------
-
   void _subscribeRealtime() {
     _realtimeSubscription?.cancel();
 
     _realtimeSubscription = remote.watchTaskUpdates().listen(
       (serverTask) async {
         try {
-          // IMPORTANT:
-          // DO NOT overwrite optimistic
-          // local state
-
           final hasPending = await local.hasPendingOperation(serverTask.id);
 
           if (hasPending) {
@@ -300,8 +220,6 @@ because optimistic mutation exists
 
             return;
           }
-
-          // safe reconciliation
 
           await local.upsertTask(serverTask);
         } catch (e) {

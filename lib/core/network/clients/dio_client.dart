@@ -1,14 +1,15 @@
 import 'package:dio/dio.dart';
 
+import '../../config/api_config.dart';
 import '../network.dart';
 import '../network_types.dart';
-
-const String baseUrl = 'http://localhost:3001';
 
 class DioClient implements Network {
   DioClient(this._dio);
 
   final Dio _dio;
+
+  String get _baseUrl => ApiConfig.baseUrl;
 
   @override
   Future<Response<T>> get<T>(
@@ -19,7 +20,8 @@ class DioClient implements Network {
     CancelToken? cancelToken,
   }) {
     try {
-      final url = customBaseUrl != null ? customBaseUrl + path : baseUrl + path;
+      final url =
+          customBaseUrl != null ? customBaseUrl + path : _baseUrl + path;
       return _dio.get<T>(
         url,
         queryParameters: queryParameters,
@@ -45,7 +47,8 @@ class DioClient implements Network {
     CancelToken? cancelToken,
   }) {
     try {
-      final url = customBaseUrl != null ? customBaseUrl + path : baseUrl + path;
+      final url =
+          customBaseUrl != null ? customBaseUrl + path : _baseUrl + path;
       return _dio.patch<T>(
         url,
         data: data,

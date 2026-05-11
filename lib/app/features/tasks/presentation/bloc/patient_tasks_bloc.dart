@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:stream_transform/stream_transform.dart';
 
 import '../../domain/domain.dart';
+import '../utils/task_update_error_message.dart';
 
 part 'patient_tasks_event.dart';
 part 'patient_tasks_state.dart';
@@ -16,88 +17,50 @@ EventTransformer<T> debounceRestartable<T>(Duration duration) {
 }
 
 class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
-  PatientTasksBloc({required this.repository}) : super(PatientTasksInitial()) {
-    // --------------------------------------------------------
-    // LOAD
-    // --------------------------------------------------------
-
+  PatientTasksBloc({required PatientTasksRepository repository})
+    : _repository = repository,
+      super(PatientTasksInitial()) {
     on<LoadTasks>(_onLoad, transformer: droppable());
-
-    // --------------------------------------------------------
-    // LOCAL TASK STREAM
-    // --------------------------------------------------------
-
     on<TasksUpdated>(_onTasksUpdated);
-
-    // --------------------------------------------------------
-    // SEARCH
-    // --------------------------------------------------------
-
     on<SearchTasks>(
       _onSearch,
-
       transformer: debounceRestartable(const Duration(milliseconds: 300)),
     );
-
-    // --------------------------------------------------------
-    // PAGINATION
-    // --------------------------------------------------------
-
     on<LoadNextPage>(_onLoadNextPage, transformer: droppable());
-
-    // --------------------------------------------------------
-    // UPDATE STATUS
-    // --------------------------------------------------------
-
     on<UpdateTaskStatus>(_onUpdateStatus, transformer: sequential());
-
     on<RollbackMessageReceived>(_onRollbackMessageReceived);
-
     on<FilterChanged>(_onFilterChanged);
   }
 
-  final PatientTasksRepository repository;
+  final PatientTasksRepository _repository;
+
   StreamSubscription<List<PatientTasks>>? _tasksSubscription;
   String _currentQuery = '';
   List<PatientTasks> _allTasks = [];
   TaskFilter _currentFilter = TaskFilter.all;
-
-  // =========================================================
-  // LOAD
-  // =========================================================
+  Stream<int> watchPendingSyncCount() => _repository.watchPendingSyncCount();
 
   Future<void> _onLoad(LoadTasks event, Emitter<PatientTasksState> emit) async {
+    if (state is! PatientTasksLoaded) {
+      emit(PatientTasksLoading());
+    }
+
     await _tasksSubscription?.cancel();
 
-    // --------------------------------------------------------
-    // LOCAL SOURCE OF TRUTH
-    // --------------------------------------------------------
-
-    _tasksSubscription = repository.watchTasks().listen((tasks) {
+    _tasksSubscription = _repository.watchTasks().listen((tasks) {
       add(TasksUpdated(tasks));
     });
 
-    // --------------------------------------------------------
-    // BACKGROUND REMOTE SYNC
-    // --------------------------------------------------------
-
-    unawaited(repository.searchTasks(query: _currentQuery, page: 0));
+    unawaited(_repository.searchTasks(query: _currentQuery, page: 0));
   }
-
-  // =========================================================
-  // LOCAL TASK UPDATE
-  // =========================================================
 
   void _onTasksUpdated(TasksUpdated event, Emitter<PatientTasksState> emit) {
     _allTasks = List<PatientTasks>.from(event.tasks);
-
     final filtered = _applyFilters(_allTasks);
-
     final current = state;
 
     if (current is PatientTasksLoaded) {
       emit(current.copyWith(tasks: filtered));
-
       return;
     }
 
@@ -112,16 +75,11 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
     );
   }
 
-  // =========================================================
-  // SEARCH
-  // =========================================================
-
   Future<void> _onSearch(
     SearchTasks event,
     Emitter<PatientTasksState> emit,
   ) async {
     _currentQuery = event.query;
-
     final current = state;
 
     if (current is! PatientTasksLoaded) {
@@ -129,13 +87,8 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
     }
 
     final filtered = _applyFilters(_allTasks);
-
     emit(current.copyWith(tasks: filtered));
   }
-
-  // =========================================================
-  // PAGINATION
-  // =========================================================
 
   Future<void> _onLoadNextPage(
     LoadNextPage event,
@@ -149,10 +102,9 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
 
     try {
       emit(current.copyWith(isLoadingMore: true));
-
       final nextPage = current.page + 1;
 
-      await repository.searchTasks(query: _currentQuery, page: nextPage);
+      await _repository.searchTasks(query: _currentQuery, page: nextPage);
 
       emit(current.copyWith(page: nextPage, isLoadingMore: false));
     } catch (_) {
@@ -160,26 +112,14 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
     }
   }
 
-  // =========================================================
-  // UPDATE STATUS
-  // =========================================================
-
   Future<void> _onUpdateStatus(
     UpdateTaskStatus event,
     Emitter<PatientTasksState> emit,
   ) async {
     try {
-      await repository.updateStatus(taskId: event.taskId, next: event.status);
+      await _repository.updateStatus(taskId: event.taskId, next: event.status);
     } catch (e) {
-      // ------------------------------------------------------
-      // TRANSIENT MESSAGE
-      // ------------------------------------------------------
-
-      emit(PatientTasksUiMessage(alertMessage: e.toString()));
-
-      // ------------------------------------------------------
-      // RESTORE SCREEN STATE
-      // ------------------------------------------------------
+      emit(PatientTasksUiMessage(alertMessage: taskUpdateErrorMessage(e)));
 
       final filtered = _applyFilters(_allTasks);
 
@@ -195,28 +135,6 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
     }
   }
 
-  // =========================================================
-  // LOCAL FILTER
-  // =========================================================
-
-  // List<PatientTasks> _filterTasks(List<PatientTasks> tasks, String query) {
-  //   if (query.isEmpty) {
-  //     return tasks;
-  //   }
-
-  //   final lower = query.toLowerCase();
-
-  //   return tasks.where((task) {
-  //     return task.title.toLowerCase().contains(lower) ||
-  //         task.patientReference.toLowerCase().contains(lower) ||
-  //         task.status.name.toLowerCase().contains(lower);
-  //   }).toList();
-  // }
-
-  // =========================================================
-  // DISPOSE
-  // =========================================================
-
   @override
   Future<void> close() async {
     await _tasksSubscription?.cancel();
@@ -228,15 +146,7 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
     RollbackMessageReceived event,
     Emitter<PatientTasksState> emit,
   ) async {
-    // ------------------------------------------------------
-    // EMIT TRANSIENT MESSAGE
-    // ------------------------------------------------------
-
     emit(PatientTasksUiMessage(alertMessage: event.message));
-
-    // ------------------------------------------------------
-    // RESTORE CURRENT SCREEN STATE
-    // ------------------------------------------------------
 
     await Future.microtask(() {});
 
@@ -281,24 +191,15 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
   }
 
   List<PatientTasks> _applyFilters(List<PatientTasks> tasks) {
-    // ------------------------------------------------------
-    // SEARCH FILTER
-    // ------------------------------------------------------
-
     final searchFiltered = tasks.where((task) {
       final query = _currentQuery.toLowerCase();
 
       return task.title.toLowerCase().contains(query);
     }).toList();
 
-    // ------------------------------------------------------
-    // STATUS FILTER
-    // ------------------------------------------------------
-
     switch (_currentFilter) {
       case TaskFilter.all:
         return searchFiltered;
-
       case TaskFilter.pending:
         return searchFiltered
             .where(
@@ -307,12 +208,10 @@ class PatientTasksBloc extends Bloc<PatientTasksEvent, PatientTasksState> {
                   task.status != TaskStatus.cancelled,
             )
             .toList();
-
       case TaskFilter.completed:
         return searchFiltered
             .where((task) => task.status == TaskStatus.completed)
             .toList();
-
       case TaskFilter.cancelled:
         return searchFiltered
             .where((task) => task.status == TaskStatus.cancelled)

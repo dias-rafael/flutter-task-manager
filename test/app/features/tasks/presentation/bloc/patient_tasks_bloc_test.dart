@@ -5,45 +5,29 @@ import 'package:mocktail/mocktail.dart';
 import 'package:task_manager_app/app/features/tasks/domain/domain.dart';
 import 'package:task_manager_app/app/features/tasks/presentation/bloc/patient_tasks_bloc.dart';
 
-import 'test_helpers.dart';
+import '../../helpers/test_helpers.dart';
 
 class MockPatientTasksRepository extends Mock
     implements PatientTasksRepository {}
 
 void main() {
-  // ======================================================
-  // MOCKTAIL FALLBACKS
-  // ======================================================
-
   setUpAll(() {
     registerFallbackValue(TaskStatus.inProgress);
   });
 
   group('PatientTasksBloc', () {
     late MockPatientTasksRepository repository;
-
     late PatientTasksBloc bloc;
-
     late List<PatientTasks> mockTasks;
-
     late StreamController<List<PatientTasks>> tasksController;
 
     setUp(() {
       repository = MockPatientTasksRepository();
-
       tasksController = StreamController<List<PatientTasks>>.broadcast();
-
-      // ===================================================
-      // WATCH TASKS
-      // ===================================================
 
       when(
         () => repository.watchTasks(),
       ).thenAnswer((_) => tasksController.stream);
-
-      // ===================================================
-      // SEARCH TASKS
-      // ===================================================
 
       when(
         () => repository.searchTasks(
@@ -52,10 +36,6 @@ void main() {
         ),
       ).thenAnswer((_) async {});
 
-      // ===================================================
-      // UPDATE STATUS
-      // ===================================================
-
       when(
         () => repository.updateStatus(
           taskId: any(named: 'taskId'),
@@ -63,43 +43,40 @@ void main() {
         ),
       ).thenAnswer((_) async {});
 
+      when(
+        () => repository.watchPendingSyncCount(),
+      ).thenAnswer((_) => Stream<int>.value(0));
+
       bloc = PatientTasksBloc(repository: repository);
 
       mockTasks = [
         makeTask(title: 'Task 1'),
-
         makeTask(id: '2', title: 'Task 2', status: TaskStatus.inProgress),
       ];
     });
 
     tearDown(() async {
       await bloc.close();
-
       await tasksController.close();
     });
-
-    // ======================================================
-    // INITIAL STATE
-    // ======================================================
 
     test('initial state is PatientTasksInitial', () {
       expect(bloc.state, isA<PatientTasksInitial>());
     });
 
-    // ======================================================
-    // LOAD TASKS
-    // ======================================================
+    test('LoadTasks subscribes and triggers initial remote search', () async {
+      bloc.add(LoadTasks());
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      verify(() => repository.searchTasks(query: '', page: 0)).called(1);
+    });
 
     test('emits loaded state on LoadTasks', () async {
       final emittedStates = <PatientTasksState>[];
-
       final subscription = bloc.stream.listen(emittedStates.add);
 
       bloc.add(LoadTasks());
-
-      // IMPORTANT:
-      // allow stream subscription
-      // to initialize
 
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
@@ -107,8 +84,7 @@ void main() {
 
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
-      expect(emittedStates.isNotEmpty, true);
-
+      expect(emittedStates.whereType<PatientTasksLoading>(), isNotEmpty);
       expect(emittedStates.last, isA<PatientTasksLoaded>());
 
       final loaded = emittedStates.last as PatientTasksLoaded;
@@ -117,10 +93,6 @@ void main() {
 
       await subscription.cancel();
     });
-
-    // ======================================================
-    // UPDATE STATUS
-    // ======================================================
 
     test('calls repository on UpdateTaskStatus', () async {
       bloc.add(UpdateTaskStatus(taskId: '1', status: TaskStatus.inProgress));
@@ -131,10 +103,6 @@ void main() {
         () => repository.updateStatus(taskId: '1', next: TaskStatus.inProgress),
       ).called(1);
     });
-
-    // ======================================================
-    // ROLLBACK / ERROR UI
-    // ======================================================
 
     test(
       '''
@@ -148,7 +116,6 @@ when update fails
         ).thenThrow(Exception('conflict'));
 
         final emittedStates = <PatientTasksState>[];
-
         final subscription = bloc.stream.listen(emittedStates.add);
 
         bloc.add(UpdateTaskStatus(taskId: '1', status: TaskStatus.completed));
@@ -164,10 +131,6 @@ when update fails
       },
     );
 
-    // ======================================================
-    // ORDER PRESERVATION
-    // ======================================================
-
     test('rapid toggling preserves ordering', () async {
       bloc
         ..add(UpdateTaskStatus(taskId: '1', status: TaskStatus.inProgress))
@@ -177,14 +140,9 @@ when update fails
 
       verifyInOrder([
         () => repository.updateStatus(taskId: '1', next: TaskStatus.inProgress),
-
         () => repository.updateStatus(taskId: '2', next: TaskStatus.completed),
       ]);
     });
-
-    // ======================================================
-    // SEARCH DEBOUNCE
-    // ======================================================
 
     test(
       '''
@@ -193,7 +151,6 @@ latest query only
 ''',
       () async {
         final emittedStates = <PatientTasksState>[];
-
         final subscription = bloc.stream.listen(emittedStates.add);
 
         bloc.add(LoadTasks());
@@ -226,10 +183,6 @@ latest query only
       },
     );
 
-    // ======================================================
-    // FILTERS
-    // ======================================================
-
     test(
       '''
 FilterChanged emits only
@@ -237,12 +190,7 @@ completed tasks
 ''',
       () async {
         final emittedStates = <PatientTasksState>[];
-
         final subscription = bloc.stream.listen(emittedStates.add);
-
-        // --------------------------------------------------
-        // LOAD INITIAL TASKS
-        // --------------------------------------------------
 
         bloc.add(LoadTasks());
 
@@ -250,13 +198,11 @@ completed tasks
 
         tasksController.add([
           makeTask(title: 'Pending Task', status: TaskStatus.onHold),
-
           makeTask(
             id: '2',
             title: 'Completed Task',
             status: TaskStatus.completed,
           ),
-
           makeTask(
             id: '3',
             title: 'Cancelled Task',
@@ -266,17 +212,9 @@ completed tasks
 
         await Future<void>.delayed(const Duration(milliseconds: 200));
 
-        // --------------------------------------------------
-        // APPLY FILTER
-        // --------------------------------------------------
-
         bloc.add(FilterChanged(TaskFilter.completed));
 
         await Future<void>.delayed(const Duration(milliseconds: 100));
-
-        // --------------------------------------------------
-        // ASSERT
-        // --------------------------------------------------
 
         final loadedStates = emittedStates
             .whereType<PatientTasksLoaded>()
@@ -291,6 +229,102 @@ completed tasks
         expect(latest.tasks.length, 1);
 
         expect(latest.tasks.first.title, 'Completed Task');
+
+        await subscription.cancel();
+      },
+    );
+
+    test('LoadNextPage fetches next page and increments page', () async {
+      final emittedStates = <PatientTasksState>[];
+      final subscription = bloc.stream.listen(emittedStates.add);
+
+      bloc.add(LoadTasks());
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      tasksController.add(mockTasks);
+
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      bloc.add(LoadNextPage());
+
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+
+      verify(() => repository.searchTasks(query: '', page: 1)).called(1);
+
+      final loadedStates = emittedStates
+          .whereType<PatientTasksLoaded>()
+          .toList();
+
+      expect(loadedStates.last.page, 1);
+      expect(loadedStates.last.isLoadingMore, false);
+
+      await subscription.cancel();
+    });
+
+    test('LoadNextPage clears loading flag when search fails', () async {
+      final emittedStates = <PatientTasksState>[];
+      final subscription = bloc.stream.listen(emittedStates.add);
+
+      when(
+        () => repository.searchTasks(
+          query: any(named: 'query'),
+          page: any(named: 'page'),
+        ),
+      ).thenAnswer((invocation) async {
+        final page = invocation.namedArguments[const Symbol('page')] as int;
+        if (page == 1) {
+          throw Exception('offline');
+        }
+      });
+
+      bloc.add(LoadTasks());
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      tasksController.add(mockTasks);
+
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      bloc.add(LoadNextPage());
+
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+
+      final loadedStates = emittedStates
+          .whereType<PatientTasksLoaded>()
+          .toList();
+
+      expect(loadedStates.last.page, 0);
+      expect(loadedStates.last.isLoadingMore, false);
+
+      await subscription.cancel();
+    });
+
+    test(
+      'notifyRollbackMessage emits alert then restores loaded state',
+      () async {
+        final emittedStates = <PatientTasksState>[];
+        final subscription = bloc.stream.listen(emittedStates.add);
+
+        bloc.add(LoadTasks());
+
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        tasksController.add(mockTasks);
+
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+
+        bloc.notifyRollbackMessage('sync rolled back');
+
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        final uiMessages = emittedStates
+            .whereType<PatientTasksUiMessage>()
+            .toList();
+
+        expect(uiMessages.single.alertMessage, 'sync rolled back');
+
+        expect(emittedStates.last, isA<PatientTasksLoaded>());
 
         await subscription.cancel();
       },

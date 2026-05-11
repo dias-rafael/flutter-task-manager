@@ -52,17 +52,11 @@ class SyncOperationLocalModel extends HiveObject {
   }) {
     return SyncOperationLocalModel(
       id: id ?? this.id,
-
       taskId: taskId ?? this.taskId,
-
       type: type ?? this.type,
-
       payloadJson: payloadJson ?? this.payloadJson,
-
       retryCount: retryCount ?? this.retryCount,
-
       createdAt: createdAt ?? this.createdAt,
-
       nextRetryAt: nextRetryAt ?? this.nextRetryAt,
     );
   }

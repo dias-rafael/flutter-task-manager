@@ -20,10 +20,6 @@ class SearchTasks extends PatientTasksEvent {
 
 class LoadNextPage extends PatientTasksEvent {}
 
-// ============================================================
-// INTERNAL STREAM EVENT
-// ============================================================
-
 class TasksUpdated extends PatientTasksEvent {
   TasksUpdated(this.tasks);
 

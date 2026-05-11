@@ -20,19 +20,14 @@ extension PatientTaskDtoMapper on PatientTasksModel {
     switch (value) {
       case 'requested':
         return TaskStatus.requested;
-
       case 'in_progress':
         return TaskStatus.inProgress;
-
       case 'on_hold':
         return TaskStatus.onHold;
-
       case 'completed':
         return TaskStatus.completed;
-
       case 'cancelled':
         return TaskStatus.cancelled;
-
       default:
         return TaskStatus.requested;
     }
@@ -42,16 +37,12 @@ extension PatientTaskDtoMapper on PatientTasksModel {
     switch (value) {
       case 'routine':
         return TaskPriority.routine;
-
       case 'urgent':
         return TaskPriority.urgent;
-
       case 'asap':
         return TaskPriority.asap;
-
       case 'stat':
         return TaskPriority.stat;
-
       default:
         return TaskPriority.routine;
     }

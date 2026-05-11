@@ -117,7 +117,6 @@ linter:
     - close_sinks
     - deprecated_consistency
     - prefer_mixin
-    - prefer_relative_imports
     - prefer_asserts_in_initializer_lists
     - prefer_const_constructors
     - prefer_const_constructors_in_immutables

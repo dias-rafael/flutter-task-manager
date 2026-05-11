@@ -12,21 +12,12 @@ class PatientTasksRepositoryImpl implements PatientTasksRepository {
   PatientTasksRepositoryImpl({required this.local, required this.remote});
 
   final PatientTasksLocalDataSource local;
-
   final PatientTasksRemoteDataSource remote;
-
-  // ----------------------------------------------------------
-  // LOCAL SOURCE OF TRUTH
-  // ----------------------------------------------------------
 
   @override
   Stream<List<PatientTasks>> watchTasks() {
     return local.watchTasks();
   }
-
-  // ----------------------------------------------------------
-  // REFRESH
-  // ----------------------------------------------------------
 
   @override
   Future<void> refresh() async {
@@ -40,10 +31,6 @@ class PatientTasksRepositoryImpl implements PatientTasksRepository {
       throw UnknownException(message: 'Failed to refresh tasks', error: e);
     }
   }
-
-  // ----------------------------------------------------------
-  // SEARCH + PAGINATION
-  // ----------------------------------------------------------
 
   @override
   Future<void> searchTasks({
@@ -70,18 +57,11 @@ class PatientTasksRepositoryImpl implements PatientTasksRepository {
         return;
       }
 
-      // offline-first:
-      // keep local cache
-
       return;
     } catch (_) {
       return;
     }
   }
-
-  // ----------------------------------------------------------
-  // OPTIMISTIC UPDATE
-  // ----------------------------------------------------------
 
   @override
   Future<void> updateStatus({
@@ -89,16 +69,10 @@ class PatientTasksRepositoryImpl implements PatientTasksRepository {
     required TaskStatus next,
   }) async {
     final tasks = await local.getTasks();
-
     final current = tasks.firstWhere((e) => e.id == taskId);
-
     final optimistic = current.transitionTo(next);
 
-    // optimistic update
-
     await local.upsertTask(optimistic);
-
-    // enqueue sync operation
 
     final operation = SyncOperationLocalModel(
       id: const Uuid().v4(),

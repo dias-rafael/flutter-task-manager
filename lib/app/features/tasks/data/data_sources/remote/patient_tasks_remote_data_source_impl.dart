@@ -13,14 +13,8 @@ class PatientTasksRemoteDataSourceImpl implements PatientTasksRemoteDataSource {
   PatientTasksRemoteDataSourceImpl(this._client, this._realtimeApi);
 
   final Network _client;
-
   final MockPatientTaskApi _realtimeApi;
-
   CancelToken? _searchCancelToken;
-
-  // ----------------------------------------------------------
-  // FETCH TASKS
-  // ----------------------------------------------------------
 
   @override
   Future<List<PatientTasks>> fetchTasks({
@@ -31,22 +25,15 @@ class PatientTasksRemoteDataSourceImpl implements PatientTasksRemoteDataSource {
     try {
       CancelToken? cancelToken;
 
-      // only searchable requests
-      // should be cancellable
-
       if (query.isNotEmpty) {
         _searchCancelToken?.cancel();
-
         _searchCancelToken = CancelToken();
-
         cancelToken = _searchCancelToken;
       }
 
       final response = await _client.get<Map<String, dynamic>>(
         tasksEndPoint,
-
         queryParameters: {'query': query, 'page': page, 'page_size': pageSize},
-
         cancelToken: cancelToken,
       );
 
@@ -67,9 +54,6 @@ class PatientTasksRemoteDataSourceImpl implements PatientTasksRemoteDataSource {
       rethrow;
     }
   }
-  // ----------------------------------------------------------
-  // PATCH STATUS
-  // ----------------------------------------------------------
 
   @override
   Future<void> patchStatus({
@@ -80,20 +64,13 @@ class PatientTasksRemoteDataSourceImpl implements PatientTasksRemoteDataSource {
     try {
       final response = await _client.patch<Map<String, dynamic>>(
         '/tasks/$taskId',
-
         data: {'version': version, 'status': status},
-
-        // TEMPORARY:
-        // used to simulate conflicts
-        // in Mockoon
         headers: {
+          // TEMPORARY: used to simulate conflicts in Mockoon
           // remove later if desired
           // 'x-force-conflict': 'true',
         },
       );
-
-      // IMPORTANT:
-      // simulate realtime push
 
       if (response.data != null) {
         final updated = PatientTasksModel.fromJson(response.data!);
@@ -103,17 +80,9 @@ class PatientTasksRemoteDataSourceImpl implements PatientTasksRemoteDataSource {
     } on DioException catch (e) {
       final statusCode = e.response?.statusCode;
 
-      // ------------------------------------------------------
-      // CONFLICT
-      // ------------------------------------------------------
-
       if (statusCode == 409) {
         throw ConflictException(message: 'Conflict detected');
       }
-
-      // ------------------------------------------------------
-      // PERMANENT REJECTION
-      // ------------------------------------------------------
 
       if (statusCode == 400 || statusCode == 403 || statusCode == 422) {
         throw ValidationException(
@@ -124,26 +93,14 @@ class PatientTasksRemoteDataSourceImpl implements PatientTasksRemoteDataSource {
         );
       }
 
-      // ------------------------------------------------------
-      // TRANSIENT FAILURE
-      // ------------------------------------------------------
-
       rethrow;
     }
   }
-
-  // ----------------------------------------------------------
-  // REALTIME UPDATES
-  // ----------------------------------------------------------
 
   @override
   Stream<PatientTasks> watchTaskUpdates() {
     return _realtimeApi.taskUpdates().map((dto) => dto.toEntity());
   }
-
-  // ----------------------------------------------------------
-  // FETCH SINGLE TASK
-  // ----------------------------------------------------------
 
   @override
   Future<PatientTasks> fetchTask(String taskId) async {

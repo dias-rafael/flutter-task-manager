@@ -15,28 +15,16 @@ class PatientTasksLocalDataSourceImpl implements PatientTasksLocalDataSource {
        _queueBox = queueBox;
 
   final Box<PatientTasksLocalModel> _tasksBox;
-
   final Box<SyncOperationLocalModel> _queueBox;
-
   final _controller = StreamController<List<PatientTasks>>.broadcast();
 
   @override
   Stream<List<PatientTasks>> watchTasks() {
     return Stream.multi((controller) {
-      // ----------------------------------------------------
-      // INITIAL SNAPSHOT
-      // ----------------------------------------------------
-
       controller.add(_tasksBox.values.map((e) => e.toEntity()).toList());
-
-      // ----------------------------------------------------
-      // REACTIVE UPDATES
-      // ----------------------------------------------------
-
       final subscription = _tasksBox.watch().listen((_) {
         controller.add(_tasksBox.values.map((e) => e.toEntity()).toList());
       });
-
       controller.onCancel = subscription.cancel;
     });
   }
@@ -52,16 +40,13 @@ class PatientTasksLocalDataSourceImpl implements PatientTasksLocalDataSource {
       for (final task in tasks)
         task.id: PatientTasksLocalModel.fromEntity(task),
     };
-
     await _tasksBox.putAll(map);
-
     _emit();
   }
 
   @override
   Future<void> upsertTask(PatientTasks task) async {
     await _tasksBox.put(task.id, PatientTasksLocalModel.fromEntity(task));
-
     _emit();
   }
 
@@ -70,21 +55,14 @@ class PatientTasksLocalDataSourceImpl implements PatientTasksLocalDataSource {
     await _queueBox.put(operation.id, operation);
   }
 
-  // @override
-  // Future<List<SyncOperationLocalModel>> getPendingOperations() async {
-  //   return _queueBox.values.toList();
-  // }
-
   @override
   Future<List<SyncOperationLocalModel>> getPendingOperations() async {
     debugPrint('BOX KEYS: ${_queueBox.keys.toList()}');
-
     debugPrint('BOX VALUES RAW: ${_queueBox.values}');
 
     for (final key in _queueBox.keys) {
       try {
         final item = _queueBox.get(key);
-
         debugPrint('ITEM [$key]: $item');
       } catch (e) {
         debugPrint('ERROR READING [$key]: $e');
@@ -108,7 +86,6 @@ class PatientTasksLocalDataSourceImpl implements PatientTasksLocalDataSource {
 
   void _emit() {
     final tasks = _tasksBox.values.map((e) => e.toEntity()).toList();
-
     _controller.add(tasks);
   }
 
