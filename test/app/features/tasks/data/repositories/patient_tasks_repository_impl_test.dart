@@ -7,7 +7,7 @@ import 'package:task_manager_app/app/features/tasks/data/data.dart';
 import 'package:task_manager_app/app/features/tasks/domain/domain.dart';
 import 'package:task_manager_app/core/network/network_types.dart';
 
-import '../../presentation/bloc/test_helpers.dart';
+import '../../helpers/test_helpers.dart';
 
 class MockLocal extends Mock implements PatientTasksLocalDataSource {}
 
@@ -54,16 +54,10 @@ void main() {
 
     test('refresh maps DioException to NetworkException', () async {
       when(() => remote.fetchTasks()).thenThrow(
-        DioException(
-          requestOptions: RequestOptions(),
-          message: 'offline',
-        ),
+        DioException(requestOptions: RequestOptions(), message: 'offline'),
       );
 
-      expect(
-        () => repository.refresh(),
-        throwsA(isA<NetworkException>()),
-      );
+      expect(() => repository.refresh(), throwsA(isA<NetworkException>()));
     });
 
     test('searchTasks page 0 replaces local tasks', () async {
@@ -86,10 +80,7 @@ void main() {
     });
 
     test('searchTasks page 1 upserts each task', () async {
-      final tasks = [
-        makeTask(),
-        makeTask(id: '2', title: 'B'),
-      ];
+      final tasks = [makeTask(), makeTask(id: '2', title: 'B')];
 
       when(
         () => remote.fetchTasks(
@@ -161,21 +152,20 @@ void main() {
 
       when(() => local.enqueueOperation(any())).thenAnswer((_) async {});
 
-      await repository.updateStatus(
-        taskId: 't1',
-        next: TaskStatus.inProgress,
-      );
+      await repository.updateStatus(taskId: 't1', next: TaskStatus.inProgress);
 
-      final upsertCapture =
-          verify(() => local.upsertTask(captureAny())).captured;
+      final upsertCapture = verify(
+        () => local.upsertTask(captureAny()),
+      ).captured;
 
       final optimistic = upsertCapture.single as PatientTasks;
 
       expect(optimistic.status, TaskStatus.inProgress);
       expect(optimistic.version, current.version + 1);
 
-      final opCapture =
-          verify(() => local.enqueueOperation(captureAny())).captured;
+      final opCapture = verify(
+        () => local.enqueueOperation(captureAny()),
+      ).captured;
 
       final op = opCapture.single as SyncOperationLocalModel;
 

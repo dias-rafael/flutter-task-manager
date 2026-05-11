@@ -5,7 +5,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:task_manager_app/app/features/tasks/domain/domain.dart';
 import 'package:task_manager_app/app/features/tasks/presentation/bloc/patient_tasks_bloc.dart';
 
-import 'test_helpers.dart';
+import '../../helpers/test_helpers.dart';
 
 class MockPatientTasksRepository extends Mock
     implements PatientTasksRepository {}
@@ -84,10 +84,7 @@ void main() {
 
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
-      expect(
-        emittedStates.whereType<PatientTasksLoading>(),
-        isNotEmpty,
-      );
+      expect(emittedStates.whereType<PatientTasksLoading>(), isNotEmpty);
       expect(emittedStates.last, isA<PatientTasksLoaded>());
 
       final loaded = emittedStates.last as PatientTasksLoaded;

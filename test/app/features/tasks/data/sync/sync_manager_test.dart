@@ -8,7 +8,7 @@ import 'package:task_manager_app/app/features/tasks/data/sync/sync_manager.dart'
 import 'package:task_manager_app/app/features/tasks/domain/domain.dart';
 import 'package:task_manager_app/core/network/network_types.dart';
 
-import '../../presentation/bloc/test_helpers.dart';
+import '../../helpers/test_helpers.dart';
 
 class MockRemoteDatasource extends Mock
     implements PatientTasksRemoteDataSource {}
@@ -242,9 +242,7 @@ and was reverted.
           },
         );
 
-        when(
-          () => local.getPendingOperations(),
-        ).thenAnswer((_) async => [op]);
+        when(() => local.getPendingOperations()).thenAnswer((_) async => [op]);
 
         when(
           () => remote.patchStatus(

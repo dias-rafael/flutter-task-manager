@@ -42,9 +42,17 @@ Future<void> setupDependencies() async {
   // await Hive.deleteBoxFromDisk('sync_queue');
   // await Hive.deleteBoxFromDisk('patient_tasks');
 
-  Hive
-    ..registerAdapter(PatientTasksLocalModelAdapter())
-    ..registerAdapter(SyncOperationLocalModelAdapter());
+  final patientTasksAdapter = PatientTasksLocalModelAdapter();
+
+  if (!Hive.isAdapterRegistered(patientTasksAdapter.typeId)) {
+    Hive.registerAdapter(patientTasksAdapter);
+  }
+
+  final syncAdapter = SyncOperationLocalModelAdapter();
+
+  if (!Hive.isAdapterRegistered(syncAdapter.typeId)) {
+    Hive.registerAdapter(syncAdapter);
+  }
 
   final tasksBox = await Hive.openBox<PatientTasksLocalModel>('patient_tasks');
   final queueBox = await Hive.openBox<SyncOperationLocalModel>('sync_queue');
