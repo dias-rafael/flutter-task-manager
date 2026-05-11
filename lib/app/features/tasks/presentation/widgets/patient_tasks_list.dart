@@ -31,7 +31,7 @@ class PatientTasksList extends StatelessWidget {
             }
 
             return RefreshIndicator(
-              onRefresh: () async => onRefresh,
+              onRefresh: () async => onRefresh(),
               child: ListView.builder(
                 controller: scrollController,
                 padding: const EdgeInsets.only(bottom: 24),
